@@ -307,7 +307,7 @@ export default function ChainLineTestPage() {
               </div>
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-red-100 rounded-full mr-2"></span>
-                <span>Avoid (>6°, &lt;93.5% efficiency)</span>
+                <span>Avoid (&gt;6°, &lt;93.5% efficiency)</span>
               </div>
             </div>
           </div>
