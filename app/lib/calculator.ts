@@ -1,232 +1,354 @@
-// app/lib/tireCalculator.ts
-import { 
-    TireDatabase, 
-    WheelSetup, 
-    CircumferenceResult, 
-    TireMeasurement 
-  } from '../types/tires';
-  import { TIRE_DATABASE, COMMON_TIRE_SIZES, COMMON_RIM_WIDTHS } from '../data/tires';
+// app/lib/gearCalculator.ts
+import { DrivetrainSetup, GearCalculation } from '../types/components';
+import { tireCalculator } from './tireCalculator';
+import { WheelSetup } from '../types/tires';
+
+export interface GearSetup extends DrivetrainSetup {
+  wheelSetup: WheelSetup;
+  crankLength: number; // selected crank length in mm
+}
+
+export interface SpeedCalculation {
+  rpm60: number;
+  rpm80: number;
+  rpm90: number;
+  rpm100: number;
+  rpm120: number;
+}
+
+export class GearCalculator {
   
-  export class TireCalculator {
-    private database: TireDatabase = TIRE_DATABASE;
-  
-    /**
-     * Get the circumference for a specific tire/rim combination
-     */
-    getCircumference(wheelSetup: WheelSetup): CircumferenceResult {
-      const { tireSize, rimWidth, pressure } = wheelSetup;
-      const rimKey = rimWidth.toString();
-  
-      // Check for exact match
-      if (this.database[tireSize] && this.database[tireSize][rimKey]) {
-        const measurement = this.database[tireSize][rimKey];
-        let circumference = measurement.circumference;
-  
-        // Apply pressure adjustment if specified
-        if (pressure && measurement.pressure) {
-          circumference = this.adjustForPressure(circumference, measurement.pressure, pressure);
-        }
-  
-        return {
-          circumference,
-          source: measurement.source,
-          confidence: 'measured',
-          notes: measurement.notes
-        };
-      }
-  
-      // Try to interpolate between rim widths
-      const interpolated = this.interpolateRimWidth(tireSize, rimWidth);
-      if (interpolated) {
-        return interpolated;
-      }
-  
-      // Fall back to estimation
-      const estimated = this.estimateCircumference(tireSize, rimWidth);
-      return estimated;
-    }
-  
-    /**
-     * Interpolate between different rim widths for the same tire
-     */
-    private interpolateRimWidth(tireSize: string, targetRimWidth: number): CircumferenceResult | null {
-      const tireData = this.database[tireSize];
-      if (!tireData) return null;
-  
-      const rimWidths = Object.keys(tireData).map(Number).sort((a, b) => a - b);
-      
-      // Find the two closest rim widths
-      let lower = null;
-      let upper = null;
-  
-      for (const width of rimWidths) {
-        if (width <= targetRimWidth) {
-          lower = width;
-        }
-        if (width >= targetRimWidth && upper === null) {
-          upper = width;
-        }
-      }
-  
-      // If we have both bounds, interpolate
-      if (lower !== null && upper !== null && lower !== upper) {
-        const lowerMeasurement = tireData[lower.toString()];
-        const upperMeasurement = tireData[upper.toString()];
+  /**
+   * Calculate all gear combinations for a drivetrain setup
+   */
+  calculateAllGears(setup: GearSetup): GearCalculation[] {
+    const gears: GearCalculation[] = [];
+    
+    // Get tire circumference
+    const circumferenceResult = tireCalculator.getCircumference(setup.wheelSetup);
+    const wheelCircumference = circumferenceResult.circumference; // in mm
+    
+    // Calculate for each chainring/cog combination
+    setup.crankset.chainrings.forEach((chainring, frontIndex) => {
+      setup.cassette.cogs.forEach((cog, rearIndex) => {
+        const gear = this.calculateGear(
+          chainring,
+          cog,
+          wheelCircumference,
+          setup.crankLength,
+          setup
+        );
         
-        const ratio = (targetRimWidth - lower) / (upper - lower);
-        const circumference = lowerMeasurement.circumference + 
-          (ratio * (upperMeasurement.circumference - lowerMeasurement.circumference));
-  
-        return {
-          circumference: Math.round(circumference),
-          source: `interpolated_${lowerMeasurement.source}`,
-          confidence: 'interpolated',
-          notes: `Interpolated between ${lower}mm and ${upper}mm rim widths`
-        };
-      }
-  
-      return null;
-    }
-  
-    /**
-     * Estimate circumference for unknown tire/rim combinations
-     */
-    private estimateCircumference(tireSize: string, rimWidth: number): CircumferenceResult {
-      // Parse tire size to get diameter and width
-      const parsed = this.parseTireSize(tireSize);
-      
-      if (!parsed) {
-        // Fallback to 700x25c equivalent
-        return {
-          circumference: 2110,
-          source: 'estimated_fallback',
-          confidence: 'estimated',
-          notes: 'Unknown tire size, using 700x25c equivalent'
-        };
-      }
-  
-      // Base circumference calculations (simplified)
-      let baseCircumference: number;
-      
-      if (parsed.diameter === 700) {
-        baseCircumference = 2096 + (parsed.width - 23) * 2.5; // ~2.5mm per mm of width
-      } else if (parsed.diameter === 650) {
-        baseCircumference = 2070 + (parsed.width - 42) * 2;
-      } else if (parsed.diameter === 29) {
-        baseCircumference = 2300 + (parsed.width - 2.1) * 50; // MTB uses inches
-      } else if (parsed.diameter === 27.5) {
-        baseCircumference = 2140 + (parsed.width - 2.1) * 50;
-      } else if (parsed.diameter === 26) {
-        baseCircumference = 1970 + (parsed.width - 1.9) * 40;
-      } else {
-        baseCircumference = 2110; // fallback
-      }
-  
-      // Adjust for rim width (wider rims = slightly larger circumference)
-      const rimAdjustment = (rimWidth - 21) * 0.8; // ~0.8mm per mm of rim width difference
-  
-      return {
-        circumference: Math.round(baseCircumference + rimAdjustment),
-        source: 'estimated_formula',
-        confidence: 'estimated',
-        notes: `Estimated using diameter ${parsed.diameter} and width ${parsed.width}`
-      };
-    }
-  
-    /**
-     * Parse tire size string into diameter and width
-     */
-    private parseTireSize(tireSize: string): { diameter: number; width: number } | null {
-      // Handle 700c format (700x25c)
-      const road700Match = tireSize.match(/^700x(\d+)c?$/);
-      if (road700Match) {
-        return { diameter: 700, width: parseInt(road700Match[1]) };
-      }
-  
-      // Handle 650b format (650x47b)
-      const gravel650Match = tireSize.match(/^650x(\d+)b?$/);
-      if (gravel650Match) {
-        return { diameter: 650, width: parseInt(gravel650Match[1]) };
-      }
-  
-      // Handle MTB format (29x2.1, 27.5x2.25, 26x1.9)
-      const mtbMatch = tireSize.match(/^(29|27\.5|26)x([\d.]+)$/);
-      if (mtbMatch) {
-        return { diameter: parseFloat(mtbMatch[1]), width: parseFloat(mtbMatch[2]) };
-      }
-  
-      return null;
-    }
-  
-    /**
-     * Adjust circumference for tire pressure
-     */
-    private adjustForPressure(baseCircumference: number, basePressure: number, targetPressure: number): number {
-      // Higher pressure = slightly smaller circumference (tire deforms less)
-      // Approximate adjustment: -0.1% per 10 PSI increase
-      const pressureDiff = targetPressure - basePressure;
-      const adjustment = (pressureDiff / 10) * -0.001; // -0.1% per 10 PSI
-      
-      return Math.round(baseCircumference * (1 + adjustment));
-    }
-  
-    /**
-     * Get all available tire sizes for a bike type
-     */
-    getAvailableTireSizes(bikeType: keyof typeof COMMON_TIRE_SIZES): string[] {
-      return COMMON_TIRE_SIZES[bikeType] || [];
-    }
-  
-    /**
-     * Get common rim widths for a bike type
-     */
-    getCommonRimWidths(bikeType: keyof typeof COMMON_RIM_WIDTHS): number[] {
-      return COMMON_RIM_WIDTHS[bikeType] || [];
-    }
-  
-    /**
-     * Get all measurements for a specific tire size
-     */
-    getTireMeasurements(tireSize: string): TireMeasurement[] {
-      const tireData = this.database[tireSize];
-      if (!tireData) return [];
-      
-      return Object.values(tireData);
-    }
-  
-    /**
-     * Search for tire sizes matching a query
-     */
-    searchTireSizes(query: string): string[] {
-      const searchTerm = query.toLowerCase();
-      return Object.keys(this.database).filter(size => 
-        size.toLowerCase().includes(searchTerm)
-      );
-    }
-  
-    /**
-     * Get database statistics
-     */
-    getStats() {
-      const totalMeasurements = Object.values(this.database)
-        .reduce((count, tireData) => count + Object.keys(tireData).length, 0);
-      
-      const tireSizes = Object.keys(this.database).length;
-      
-      const sources = new Set();
-      Object.values(this.database).forEach(tireData => {
-        Object.values(tireData).forEach(measurement => {
-          sources.add(measurement.source);
-        });
+        // Add position information
+        (gear as any).frontIndex = frontIndex;
+        (gear as any).rearIndex = rearIndex;
+        (gear as any).gearNumber = frontIndex * setup.cassette.cogs.length + rearIndex + 1;
+        (gear as any).chainring = chainring;
+        (gear as any).cog = cog;
+        (gear as any).wheelCircumference = wheelCircumference;
+        (gear as any).crankLength = setup.crankLength;
+        
+        gears.push(gear);
       });
-  
-      return {
-        totalMeasurements,
-        tireSizes,
-        sources: Array.from(sources)
-      };
-    }
+    });
+    
+    return gears;
   }
   
-  // Create singleton instance
-  export const tireCalculator = new TireCalculator();
+  /**
+   * Calculate a single gear combination
+   */
+  calculateGear(
+    chainringTeeth: number,
+    cogTeeth: number,
+    wheelCircumference: number, // mm
+    crankLength: number, // mm
+    setup: GearSetup
+  ): GearCalculation {
+    
+    // Basic gear ratio (unitless)
+    const ratio = chainringTeeth / cogTeeth;
+    
+    // Gear inches (diameter in inches that would give same ratio with direct drive)
+    const gearInches = ratio * (wheelCircumference / Math.PI / 25.4); // convert mm to inches
+    
+    // Gain ratio (Sheldon Brown's method - accounts for crank length)
+    const wheelRadius = wheelCircumference / (2 * Math.PI); // mm
+    const gainRatio = ratio * (wheelRadius / crankLength);
+    
+    // Development (distance traveled per pedal revolution)
+    const developmentMeters = (wheelCircumference * ratio) / 1000; // convert mm to meters
+    
+    // Speed at various cadences
+    const speedAtCadence = this.calculateSpeedsAtCadences(
+      developmentMeters,
+      [60, 80, 90, 100, 120]
+    );
+    
+    // Chain line analysis
+    const chainLineData = this.calculateChainLine(
+      chainringTeeth,
+      cogTeeth,
+      setup
+    );
+    
+    return {
+      ratio,
+      gearInches,
+      gainRatio,
+      developmentMeters,
+      speedAtCadence: {
+        rpm60: speedAtCadence[0],
+        rpm80: speedAtCadence[1],
+        rpm90: speedAtCadence[2],
+        rpm100: speedAtCadence[3],
+        rpm120: speedAtCadence[4]
+      },
+      chainLine: chainLineData.chainLine,
+      crossChainAngle: chainLineData.crossChainAngle,
+      efficiency: chainLineData.efficiency
+    };
+  }
+  
+  /**
+   * Calculate speed at various cadences
+   */
+  private calculateSpeedsAtCadences(
+    developmentMeters: number,
+    cadences: number[]
+  ): number[] {
+    return cadences.map(cadence => {
+      // Speed = development × cadence × 60 (to get meters per hour)
+      const metersPerHour = developmentMeters * cadence * 60;
+      // Convert to km/h
+      const kmh = metersPerHour / 1000;
+      // Convert to mph  
+      const mph = kmh * 0.621371;
+      
+      return Math.round(mph * 10) / 10; // Round to 1 decimal place
+    });
+  }
+  
+  /**
+   * Calculate chain line geometry and efficiency
+   */
+  private calculateChainLine(
+    chainringTeeth: number,
+    cogTeeth: number,
+    setup: GearSetup
+  ): {
+    chainLine: number;
+    crossChainAngle: number;
+    efficiency: number;
+  } {
+    
+    // Front chain line (from crankset spec)
+    const frontChainLine = setup.crankset.chainLine;
+    
+    // Estimate rear chain line based on cassette position
+    const rearChainLine = this.estimateRearChainLine(cogTeeth, setup);
+    
+    // Calculate chain angle (simplified geometry)
+    const chainStay = 420; // Typical chain stay length in mm
+    const chainLineOffset = Math.abs(frontChainLine - rearChainLine);
+    const crossChainAngle = Math.atan(chainLineOffset / chainStay) * (180 / Math.PI);
+    
+    // Calculate efficiency based on chain angle
+    const efficiency = this.calculateChainEfficiency(crossChainAngle);
+    
+    return {
+      chainLine: frontChainLine,
+      crossChainAngle,
+      efficiency
+    };
+  }
+  
+  /**
+   * Estimate rear chain line based on cog position
+   */
+  private estimateRearChainLine(cogTeeth: number, setup: GearSetup): number {
+    const standardRearChainLine = setup.bikeType === 'road' ? 43.5 : 52;
+    const cogIndex = setup.cassette.cogs.indexOf(cogTeeth);
+    const totalCogs = setup.cassette.cogs.length;
+    
+    // Estimate cog position offset from center
+    const cogSpacing = setup.cassette.speeds === 11 ? 3.95 : 
+                      setup.cassette.speeds === 12 ? 3.35 : 4.09; // mm between cogs
+    const centerIndex = (totalCogs - 1) / 2;
+    const cogOffset = (cogIndex - centerIndex) * cogSpacing;
+    
+    return standardRearChainLine + cogOffset;
+  }
+  
+  /**
+   * Calculate chain efficiency based on cross-chain angle
+   */
+  private calculateChainEfficiency(crossChainAngle: number): number {
+    // Based on efficiency studies - straight chain is ~98% efficient
+    const baseEfficiency = 0.98;
+    
+    // Efficiency drops with chain angle
+    if (crossChainAngle < 1) return baseEfficiency;
+    if (crossChainAngle < 2.5) return baseEfficiency - 0.005; // 97.5%
+    if (crossChainAngle < 5) return baseEfficiency - 0.015; // 96.5%
+    if (crossChainAngle < 7.5) return baseEfficiency - 0.03; // 95%
+    
+    return baseEfficiency - 0.05; // 93% for extreme cross-chaining
+  }
+  
+  /**
+   * Get the optimal (most efficient) gears
+   */
+  getOptimalGears(gears: GearCalculation[]): GearCalculation[] {
+    return gears.filter(gear => gear.efficiency > 0.975); // 97.5% or better
+  }
+  
+  /**
+   * Get problematic gears to avoid
+   */
+  getProblematicGears(gears: GearCalculation[]): GearCalculation[] {
+    return gears.filter(gear => 
+      gear.efficiency < 0.96 || gear.crossChainAngle > 5
+    );
+  }
+  
+  /**
+   * Find gear duplicates (similar ratios)
+   */
+  findGearDuplicates(gears: GearCalculation[], tolerance = 0.05): Array<{
+    primary: GearCalculation;
+    duplicates: GearCalculation[];
+  }> {
+    const duplicateGroups: Array<{
+      primary: GearCalculation;
+      duplicates: GearCalculation[];
+    }> = [];
+    
+    const processed = new Set<number>();
+    
+    gears.forEach((gear, index) => {
+      if (processed.has(index)) return;
+      
+      const duplicates = gears.filter((otherGear, otherIndex) => {
+        if (otherIndex <= index) return false;
+        return Math.abs(gear.ratio - otherGear.ratio) <= tolerance;
+      });
+      
+      if (duplicates.length > 0) {
+        duplicateGroups.push({
+          primary: gear,
+          duplicates
+        });
+        
+        // Mark as processed
+        processed.add(index);
+        duplicates.forEach(dup => {
+          const dupIndex = gears.indexOf(dup);
+          if (dupIndex >= 0) processed.add(dupIndex);
+        });
+      }
+    });
+    
+    return duplicateGroups;
+  }
+  
+  /**
+   * Calculate gear range (highest/lowest ratio)
+   */
+  calculateGearRange(gears: GearCalculation[]): {
+    range: number;
+    lowest: GearCalculation;
+    highest: GearCalculation;
+    lowestUsable: GearCalculation | null;
+    highestUsable: GearCalculation | null;
+  } {
+    const usableGears = gears.filter(g => g.efficiency > 0.95);
+    
+    const allSorted = [...gears].sort((a, b) => a.ratio - b.ratio);
+    const usableSorted = [...usableGears].sort((a, b) => a.ratio - b.ratio);
+    
+    return {
+      range: allSorted.length > 0 ? allSorted[allSorted.length - 1].ratio / allSorted[0].ratio : 0,
+      lowest: allSorted[0],
+      highest: allSorted[allSorted.length - 1],
+      lowestUsable: usableSorted.length > 0 ? usableSorted[0] : null,
+      highestUsable: usableSorted.length > 0 ? usableSorted[usableSorted.length - 1] : null
+    };
+  }
+  
+  /**
+   * Calculate gear steps (percentage jumps between adjacent gears)
+   */
+  calculateGearSteps(gears: GearCalculation[]): Array<{
+    from: GearCalculation;
+    to: GearCalculation;
+    stepPercentage: number;
+  }> {
+    const sortedGears = [...gears].sort((a, b) => a.ratio - b.ratio);
+    const steps: Array<{
+      from: GearCalculation;
+      to: GearCalculation;
+      stepPercentage: number;
+    }> = [];
+    
+    for (let i = 0; i < sortedGears.length - 1; i++) {
+      const from = sortedGears[i];
+      const to = sortedGears[i + 1];
+      const stepPercentage = ((to.ratio - from.ratio) / from.ratio) * 100;
+      
+      steps.push({
+        from,
+        to,
+        stepPercentage: Math.round(stepPercentage * 10) / 10
+      });
+    }
+    
+    return steps;
+  }
+  
+  /**
+   * Suggest optimal gear for a target speed and cadence
+   */
+  suggestGearForSpeed(
+    gears: GearCalculation[],
+    targetSpeedMph: number,
+    targetCadence: number = 90
+  ): GearCalculation | null {
+    
+    const cadenceKey = this.getCadenceKey(targetCadence);
+    if (!cadenceKey) return null;
+    
+    const usableGears = this.getOptimalGears(gears);
+    if (usableGears.length === 0) return null;
+    
+    let bestGear: GearCalculation | null = null;
+    let smallestDiff = Infinity;
+    
+    usableGears.forEach(gear => {
+      const gearSpeed = gear.speedAtCadence[cadenceKey];
+      const diff = Math.abs(gearSpeed - targetSpeedMph);
+      
+      if (diff < smallestDiff) {
+        smallestDiff = diff;
+        bestGear = gear;
+      }
+    });
+    
+    return bestGear;
+  }
+  
+  /**
+   * Get the appropriate cadence key for speed calculations
+   */
+  private getCadenceKey(cadence: number): keyof SpeedCalculation | null {
+    if (cadence <= 65) return 'rpm60';
+    if (cadence <= 85) return 'rpm80';
+    if (cadence <= 95) return 'rpm90';
+    if (cadence <= 110) return 'rpm100';
+    if (cadence <= 130) return 'rpm120';
+    return 'rpm120'; // Default to highest for very high cadences
+  }
+}
+
+// Create singleton instance
+export const gearCalculator = new GearCalculator();

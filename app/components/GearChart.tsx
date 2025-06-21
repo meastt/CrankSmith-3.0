@@ -25,6 +25,7 @@ export function GearChart({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterProblematic, setFilterProblematic] = useState(false);
   const [selectedGear, setSelectedGear] = useState<GearCalculation | null>(null);
+  const [currentSpeedUnit, setCurrentSpeedUnit] = useState<'mph' | 'kmh'>(speedUnit);
 
   // Sort and filter gears
   const processedGears = useMemo(() => {
@@ -66,7 +67,7 @@ export function GearChart({
 
   // Convert speed units if needed
   const convertSpeed = (speedMph: number): number => {
-    return speedUnit === 'kmh' ? speedMph * 1.60934 : speedMph;
+    return currentSpeedUnit === 'kmh' ? speedMph * 1.60934 : speedMph;
   };
 
   const handleSort = (column: typeof sortBy) => {
@@ -124,9 +125,9 @@ export function GearChart({
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Speed:</span>
               <button
-                onClick={() => {}}
+                onClick={() => setCurrentSpeedUnit('mph')}
                 className={`px-2 py-1 text-xs rounded ${
-                  speedUnit === 'mph' 
+                  currentSpeedUnit === 'mph' 
                     ? 'bg-blue-100 text-blue-700' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
@@ -134,9 +135,9 @@ export function GearChart({
                 MPH
               </button>
               <button
-                onClick={() => {}}
+                onClick={() => setCurrentSpeedUnit('kmh')}
                 className={`px-2 py-1 text-xs rounded ${
-                  speedUnit === 'kmh' 
+                  currentSpeedUnit === 'kmh' 
                     ? 'bg-blue-100 text-blue-700' 
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
@@ -222,7 +223,7 @@ export function GearChart({
           <tbody className="bg-white divide-y divide-gray-200">
             {processedGears.map((gear, index) => (
               <tr
-                key={`${gear.chainring}-${gear.cog}`}
+                key={`${gear.chainring}-${gear.cog}-${index}`}
                 onClick={() => handleGearClick(gear)}
                 className={`cursor-pointer transition-colors ${
                   selectedGear === gear ? 'bg-blue-50' : 'hover:bg-gray-50'
@@ -249,13 +250,13 @@ export function GearChart({
                   {gear.developmentMeters.toFixed(2)}m
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {convertSpeed(gear.speedAtCadence.rpm60).toFixed(1)} {speedUnit}
+                  {convertSpeed(gear.speedAtCadence.rpm60).toFixed(1)} {currentSpeedUnit}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {convertSpeed(gear.speedAtCadence.rpm90).toFixed(1)} {speedUnit}
+                  {convertSpeed(gear.speedAtCadence.rpm90).toFixed(1)} {currentSpeedUnit}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {convertSpeed(gear.speedAtCadence.rpm120).toFixed(1)} {speedUnit}
+                  {convertSpeed(gear.speedAtCadence.rpm120).toFixed(1)} {currentSpeedUnit}
                 </td>
                 <td className={`px-6 py-4 whitespace-nowrap text-sm ${getCrossChainColor(gear.crossChainAngle)}`}>
                   {gear.crossChainAngle.toFixed(1)}°
