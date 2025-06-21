@@ -73,7 +73,7 @@ import {
         speeds.push(setup.frontDerailleur.speeds);
       }
   
-      const uniqueSpeeds = [...new Set(speeds)];
+      const uniqueSpeeds = Array.from(new Set(speeds));
       
       if (uniqueSpeeds.length > 1) {
         warnings.push({

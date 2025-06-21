@@ -86,7 +86,7 @@ export class ComponentDatabase {
       setup.rearDerailleur.speeds
     ].filter(s => s !== undefined); // Filter out undefined values
     
-    const uniqueSpeeds = [...new Set(speeds)];
+    const uniqueSpeeds = Array.from(new Set(speeds));
     
     if (uniqueSpeeds.length > 1) {
       warnings.push({
