@@ -3,7 +3,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { Component, Crankset, Cassette, RearDerailleur, Chain } from '../types/components';
-import { componentDB } from '../lib/componentData';
 
 interface ComponentSelectorProps {
   type: 'crankset' | 'cassette' | 'rear_derailleur' | 'chain';
@@ -12,6 +11,7 @@ interface ComponentSelectorProps {
   selectedComponent?: Component;
   onSelect: (component: Component) => void;
   disabled?: boolean;
+  components: Component[];
 }
 
 export function ComponentSelector({
@@ -20,28 +20,29 @@ export function ComponentSelector({
   speeds,
   selectedComponent,
   onSelect,
-  disabled = false
+  disabled = false,
+  components
 }: ComponentSelectorProps) {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
   // Get filtered components
-  const components = useMemo(() => {
-    let filtered: Component[] = [];
+  const filteredComponents = useMemo(() => {
+    let filtered: Component[] = components;
     
-    switch (type) {
-      case 'crankset':
-        filtered = componentDB.getCranksets(bikeType);
-        break;
-      case 'cassette':
-        filtered = componentDB.getCassettes(bikeType, speeds);
-        break;
-      case 'rear_derailleur':
-        filtered = componentDB.getRearDerailleurs(bikeType, speeds);
-        break;
-      case 'chain':
-        filtered = componentDB.getChains(bikeType, speeds);
-        break;
+    // Filter by bike type
+    if (bikeType) {
+      filtered = filtered.filter(c => c.bikeType === bikeType);
+    }
+    
+    // Filter by speeds for cassette, rear derailleur, and chain
+    if (speeds && (type === 'cassette' || type === 'rear_derailleur' || type === 'chain')) {
+      filtered = filtered.filter(c => {
+        if (c.type === 'cassette' || c.type === 'rear_derailleur' || c.type === 'chain') {
+          return c.speeds === speeds;
+        }
+        return false;
+      });
     }
 
     // Apply search filter
@@ -54,19 +55,19 @@ export function ComponentSelector({
     }
 
     return filtered;
-  }, [type, bikeType, speeds, search]);
+  }, [components, type, bikeType, speeds, search]);
 
   // Group components by manufacturer
   const groupedComponents = useMemo(() => {
     const groups: Record<string, Component[]> = {};
-    components.forEach(component => {
+    filteredComponents.forEach(component => {
       if (!groups[component.manufacturer]) {
         groups[component.manufacturer] = [];
       }
       groups[component.manufacturer].push(component);
     });
     return groups;
-  }, [components]);
+  }, [filteredComponents]);
 
   const handleSelect = (component: Component) => {
     onSelect(component);

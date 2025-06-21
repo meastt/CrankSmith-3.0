@@ -11,10 +11,10 @@ import {
 } from '../types/components';
 import { 
   SEED_COMPONENTS,
-  getCranksets,
-  getCassettes,
-  getRearDerailleurs,
-  getChains,
+  getCranksets as getSeedCranksets,
+  getCassettes as getSeedCassettes,
+  getRearDerailleurs as getSeedRearDerailleurs,
+  getChains as getSeedChains,
   getComponentsByBikeType,
   getComponentById
 } from '../data/components';
@@ -33,26 +33,26 @@ export class ComponentDatabase {
 
   // Get components by type
   getCranksets(bikeType?: string): Crankset[] {
-    const cranksets = getCranksets();
+    const cranksets = getSeedCranksets();
     return bikeType ? cranksets.filter(c => c.bikeType === bikeType) : cranksets;
   }
 
   getCassettes(bikeType?: string, speeds?: number): Cassette[] {
-    let cassettes = getCassettes();
+    let cassettes = getSeedCassettes();
     if (bikeType) cassettes = cassettes.filter(c => c.bikeType === bikeType);
     if (speeds) cassettes = cassettes.filter(c => c.speeds === speeds);
     return cassettes;
   }
 
   getRearDerailleurs(bikeType?: string, speeds?: number): RearDerailleur[] {
-    let derailleurs = getRearDerailleurs();
+    let derailleurs = getSeedRearDerailleurs();
     if (bikeType) derailleurs = derailleurs.filter(c => c.bikeType === bikeType);
     if (speeds) derailleurs = derailleurs.filter(c => c.speeds === speeds);
     return derailleurs;
   }
 
   getChains(bikeType?: string, speeds?: number): Chain[] {
-    let chains = getChains();
+    let chains = getSeedChains();
     if (bikeType) chains = chains.filter(c => c.bikeType === bikeType);
     if (speeds) chains = chains.filter(c => c.speeds === speeds);
     return chains;
@@ -211,10 +211,10 @@ export const componentDB = new ComponentDatabase();
 
 // Convenience exports
 export {
-  getCranksets,
-  getCassettes,
-  getRearDerailleurs,
-  getChains,
+  getSeedCranksets as getCranksets,
+  getSeedCassettes as getCassettes,
+  getSeedRearDerailleurs as getRearDerailleurs,
+  getSeedChains as getChains,
   getComponentsByBikeType,
   getComponentById
 };
