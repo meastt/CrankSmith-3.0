@@ -26,6 +26,12 @@ export function SpeedCalculator({
   const [grade, setGrade] = useState(0); // percentage
   const [windSpeed, setWindSpeed] = useState(0); // mph
 
+  // Helper function to calculate speed at specific cadence for any gear
+  const calculateSpeedAtCadence = (gear: GearCalculation, rpm: number): number => {
+    // Simple calculation: development * cadence * 60 / 1000 * 0.621371 (m/h to mph)
+    return gear.developmentMeters * rpm * 60 / 1000 * 0.621371;
+  };
+
   // Calculate current speed based on cadence
   const currentSpeed = useMemo(() => {
     if (!selectedGear) return 0;
@@ -82,12 +88,6 @@ export function SpeedCalculator({
     
     return bestGear;
   }, [allGears, targetSpeed, cadence]);
-
-  // Helper function to calculate speed at specific cadence for any gear
-  const calculateSpeedAtCadence = (gear: GearCalculation, rpm: number): number => {
-    // Simple calculation: development * cadence * 60 / 1000 * 0.621371 (m/h to mph)
-    return gear.developmentMeters * rpm * 60 / 1000 * 0.621371;
-  };
 
   // Convert between mph and kmh
   const convertSpeed = (speedMph: number): number => {

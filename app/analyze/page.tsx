@@ -5,8 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { GearChart } from '../components/GearChart';
 import { SpeedCalculator } from '../components/SpeedCalculator';
 import { gearCalculator, GearSetup } from '../lib/gearCalculator';
-import { GearCalculation, DrivetrainSetup } from '../types/components';
-import { WheelSetup } from '../types/tires';
+import { GearCalculation } from '../types/components';
 
 export default function GearAnalysisPage() {
   const [gears, setGears] = useState<GearCalculation[]>([]);
@@ -14,16 +13,58 @@ export default function GearAnalysisPage() {
   const [loading, setLoading] = useState(false);
   const [setup, setSetup] = useState<GearSetup | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCustomSetup, setIsCustomSetup] = useState(false);
 
-  // Initialize with sample setup for demo
+  // Initialize with either custom setup from build page or sample setup
   useEffect(() => {
-    loadSampleSetup();
+    loadSetup();
   }, []);
 
-  const loadSampleSetup = async () => {
+  const loadSetup = async () => {
     setLoading(true);
     setError(null);
     
+    try {
+      // First check if there's a custom setup from the build page
+      const storedSetup = sessionStorage.getItem('cranksmith_setup');
+      
+      if (storedSetup) {
+        try {
+          const customSetup = JSON.parse(storedSetup);
+          console.log('Loading custom setup from build page:', customSetup);
+          
+          setSetup(customSetup);
+          setIsCustomSetup(true);
+          
+          // Calculate gears for custom setup
+          const calculatedGears = gearCalculator.calculateAllGears(customSetup);
+          setGears(calculatedGears);
+          
+          // Select middle gear as default
+          if (calculatedGears.length > 0) {
+            setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
+          }
+          
+          setLoading(false);
+          return;
+        } catch (parseError) {
+          console.warn('Failed to parse stored setup, falling back to sample setup');
+          sessionStorage.removeItem('cranksmith_setup'); // Clear corrupted data
+        }
+      }
+      
+      // Fall back to sample setup if no custom setup
+      await loadSampleSetup();
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load gear analysis';
+      setError(errorMessage);
+      console.error('Error loading setup:', err);
+      setLoading(false);
+    }
+  };
+
+  const loadSampleSetup = async () => {
     try {
       // Import components dynamically
       const { getCranksets, getCassettes, getRearDerailleurs, getChains } = 
@@ -34,13 +75,23 @@ export default function GearAnalysisPage() {
       const derailleurs = getRearDerailleurs();
       const chains = getChains();
 
+      // Find components with proper error handling
+      const crankset = cranksets.find(c => c.id === 'shimano-105-r7000-50-34');
+      const cassette = cassettes.find(c => c.id === 'shimano-105-r7000-11-32');
+      const derailleur = derailleurs.find(d => d.id === 'shimano-105-r7000-gs');
+      const chain = chains.find(c => c.id === 'shimano-105-cn-hg601-11');
+
+      if (!crankset || !cassette || !derailleur || !chain) {
+        throw new Error('Could not find required components for sample setup');
+      }
+
       // Create sample setup
       const sampleSetup: GearSetup = {
         bikeType: 'road',
-        crankset: cranksets.find(c => c.id === 'shimano-105-r7000-50-34')!,
-        cassette: cassettes.find(c => c.id === 'shimano-105-r7000-11-32')!,
-        rearDerailleur: derailleurs.find(d => d.id === 'shimano-105-r7000-gs')!,
-        chain: chains.find(c => c.id === 'shimano-105-cn-hg601-11')!,
+        crankset,
+        cassette,
+        rearDerailleur: derailleur,
+        chain,
         wheelSetup: {
           tireSize: '700x25c',
           rimWidth: 21
@@ -49,6 +100,7 @@ export default function GearAnalysisPage() {
       };
 
       setSetup(sampleSetup);
+      setIsCustomSetup(false);
       
       // Calculate gears
       const calculatedGears = gearCalculator.calculateAllGears(sampleSetup);
@@ -62,16 +114,20 @@ export default function GearAnalysisPage() {
         setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
       }
       
-    } catch (err) {
-      setError('Failed to load gear analysis');
-      console.error('Error loading gear analysis:', err);
-    } finally {
       setLoading(false);
+      
+    } catch (err) {
+      throw err; // Re-throw to be caught by parent try-catch
     }
   };
 
   const handleGearSelect = (gear: GearCalculation) => {
     setSelectedGear(gear);
+  };
+
+  const clearCustomSetup = () => {
+    sessionStorage.removeItem('cranksmith_setup');
+    loadSampleSetup();
   };
 
   // Calculate analysis summary
@@ -89,8 +145,9 @@ export default function GearAnalysisPage() {
       optimal: optimalGears.length,
       problematic: problematicGears.length,
       range: gearRange.range,
-      averageStep: gearSteps.reduce((sum, step) => sum + step.stepPercentage, 0) / gearSteps.length,
-      largestStep: Math.max(...gearSteps.map(s => s.stepPercentage)),
+      averageStep: gearSteps.length > 0 ? 
+        gearSteps.reduce((sum, step) => sum + step.stepPercentage, 0) / gearSteps.length : 0,
+      largestStep: gearSteps.length > 0 ? Math.max(...gearSteps.map(s => s.stepPercentage)) : 0,
       duplicates: duplicates.length,
       lowestRatio: Math.min(...gears.map(g => g.ratio)),
       highestRatio: Math.max(...gears.map(g => g.ratio)),
@@ -118,7 +175,7 @@ export default function GearAnalysisPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Analysis Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={loadSampleSetup}
+            onClick={loadSetup}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Retry
@@ -137,13 +194,25 @@ export default function GearAnalysisPage() {
               <h1 className="text-2xl font-bold text-gray-900">
                 CrankSmith 3.0 - Gear Analysis
               </h1>
-              <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                Live Demo
+              <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                isCustomSetup 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-blue-100 text-blue-800'
+              }`}>
+                {isCustomSetup ? 'Custom Setup' : 'Demo Setup'}
               </span>
             </div>
             <div className="flex space-x-4">
+              {isCustomSetup && (
+                <button
+                  onClick={clearCustomSetup}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  🔄 Load Demo
+                </button>
+              )}
               <button
-                onClick={loadSampleSetup}
+                onClick={loadSetup}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 🔄 Reload
@@ -163,9 +232,16 @@ export default function GearAnalysisPage() {
         {/* Setup Summary */}
         {setup && (
           <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Current Setup
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Current Setup
+              </h2>
+              {isCustomSetup && (
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                  ✓ Built by you
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Crankset</h3>
@@ -285,26 +361,56 @@ export default function GearAnalysisPage() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-blue-900 mb-2">
-              🎉 Ready to Build Your Own Setup?
-            </h3>
-            <p className="text-blue-700 mb-4">
-              This analysis used a sample Shimano 105 road setup. 
-              Build your own drivetrain to get personalized gear analysis.
-            </p>
-            <a
-              href="/build"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              🔧 Build Your Drivetrain
-              <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </a>
+        {!isCustomSetup && (
+          <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-blue-900 mb-2">
+                🎉 Ready to Build Your Own Setup?
+              </h3>
+              <p className="text-blue-700 mb-4">
+                This analysis used a sample Shimano 105 road setup. 
+                Build your own drivetrain to get personalized gear analysis.
+              </p>
+              <a
+                href="/build"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                🔧 Build Your Drivetrain
+                <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </a>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Custom Setup Success Message */}
+        {isCustomSetup && (
+          <div className="mt-12 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-green-900 mb-2">
+                ✅ Custom Drivetrain Analysis Complete!
+              </h3>
+              <p className="text-green-700 mb-4">
+                This analysis is based on your custom component selection from the drivetrain builder.
+              </p>
+              <div className="flex justify-center space-x-4">
+                <a
+                  href="/build"
+                  className="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
+                >
+                  🔧 Build Another Setup
+                </a>
+                <button
+                  onClick={clearCustomSetup}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                >
+                  📊 View Demo Setup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
