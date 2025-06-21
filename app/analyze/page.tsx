@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { GearChart } from '../components/GearChart';
 import { SpeedCalculator } from '../components/SpeedCalculator';
+import { SaveLoadModal } from '../components/SaveLoadModal';
 import { gearCalculator, GearSetup } from '../lib/gearCalculator';
 import { GearCalculation } from '../types/components';
 
@@ -14,6 +15,7 @@ export default function GearAnalysisPage() {
   const [setup, setSetup] = useState<GearSetup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCustomSetup, setIsCustomSetup] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Initialize with either custom setup from build page or sample setup
   useEffect(() => {
@@ -217,6 +219,12 @@ export default function GearAnalysisPage() {
               >
                 🔄 Reload
               </button>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+              >
+                💾 Save & Share
+              </button>
               <a
                 href="/build"
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
@@ -412,6 +420,23 @@ export default function GearAnalysisPage() {
           </div>
         )}
       </main>
+
+      {/* Save/Load Modal */}
+      {showExportModal && setup && (
+        <SaveLoadModal
+          currentSetup={setup}
+          onLoad={(loadedSetup) => {
+            setSetup(loadedSetup);
+            const calculatedGears = gearCalculator.calculateAllGears(loadedSetup);
+            setGears(calculatedGears);
+            if (calculatedGears.length > 0) {
+              setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
+            }
+            setShowExportModal(false);
+          }}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 }

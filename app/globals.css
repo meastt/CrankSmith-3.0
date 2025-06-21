@@ -26,3 +26,80 @@
     @apply bg-white rounded-lg shadow-sm border p-6;
   }
 }
+
+/* Add to app/globals.css for mobile improvements */
+
+/* Mobile-first responsive design improvements */
+@layer utilities {
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mobile table improvements */
+  .mobile-table {
+    @apply block md:table;
+  }
+  
+  .mobile-table thead {
+    @apply hidden md:table-header-group;
+  }
+  
+  .mobile-table tbody {
+    @apply block md:table-row-group;
+  }
+  
+  .mobile-table tr {
+    @apply block border border-gray-200 mb-2 p-3 rounded-lg md:table-row md:border-0 md:mb-0 md:p-0 md:rounded-none;
+  }
+  
+  .mobile-table td {
+    @apply block text-right pl-16 relative pb-1 md:table-cell md:text-left md:pl-6 md:pb-4 md:relative-auto;
+  }
+  
+  .mobile-table td:before {
+    content: attr(data-label);
+    @apply absolute left-3 font-medium text-gray-700 md:hidden;
+  }
+  
+  /* Component selector mobile improvements */
+  .component-dropdown {
+    @apply relative;
+  }
+  
+  .component-dropdown-menu {
+    @apply absolute z-50 w-full max-h-60 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg md:max-h-96;
+  }
+  
+  /* Mobile gear chart */
+  .gear-chart-mobile {
+    @apply overflow-x-auto;
+  }
+  
+  .gear-chart-mobile table {
+    @apply min-w-full;
+  }
+  
+  /* Mobile speed calculator */
+  .speed-calc-mobile {
+    @apply space-y-4;
+  }
+  
+  .speed-calc-mobile .input-group {
+    @apply flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-3;
+  }
+  
+  /* Mobile navigation */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:relative md:border-t-0 md:p-0;
+  }
+  
+  .mobile-nav-buttons {
+    @apply flex space-x-2 md:space-x-4;
+  }
+  
+  .mobile-nav-button {
+    @apply flex-1 py-3 px-4 text-center rounded-md font-medium md:flex-none md:py-2;
+  }
+}
