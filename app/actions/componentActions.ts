@@ -1,3 +1,4 @@
+// app/actions/componentActions.ts - Fixed version
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
@@ -28,7 +29,7 @@ export async function getCranksets(): Promise<Crankset[]> {
 
   return data?.map(row => ({
     id: row.id,
-    manufacturer: row.manufacturer_id, // You'll need to join with manufacturers table
+    manufacturer: row.manufacturer_id,
     model: row.model_name,
     year: row.year,
     weight: row.weight_grams,
