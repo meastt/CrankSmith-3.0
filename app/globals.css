@@ -2,32 +2,190 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for CrankSmith */
+/* Custom styles for CrankSmith v3.0 */
 @layer base {
   html {
     font-family: system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 }
 
 @layer components {
+  /* Enhanced Button System */
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 transform active:scale-95;
   }
   
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700;
+    @apply btn bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-md hover:shadow-lg;
   }
   
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300;
+    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+  }
+
+  .btn-premium {
+    @apply btn bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-500 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-ghost {
+    @apply btn text-gray-700 hover:bg-gray-100 focus:ring-gray-500;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-lg rounded-xl;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm rounded-md;
   }
   
+  /* Card System */
   .card {
-    @apply bg-white rounded-lg shadow-sm border p-6;
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-xl hover:border-blue-200 hover:-translate-y-1;
+  }
+
+  .card-premium {
+    @apply card border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/50;
+  }
+
+  .card-feature {
+    @apply card-hover group cursor-pointer;
+  }
+
+  /* Input System */
+  .input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200;
+  }
+
+  .input-error {
+    @apply input border-red-300 focus:ring-red-500;
+  }
+
+  .input-group {
+    @apply space-y-2;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  /* Modal System */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl;
+  }
+
+  /* Premium Feature Indicators */
+  .premium-badge {
+    @apply inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full;
+  }
+
+  .premium-lock {
+    @apply inline-flex items-center text-blue-600 font-medium text-sm;
+  }
+
+  .premium-unlock {
+    @apply inline-flex items-center text-green-600 font-medium text-sm;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
+  }
+
+  .gradient-text-purple {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent;
+  }
+
+  /* Loading States */
+  .loading-spinner {
+    @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin;
+  }
+
+  .loading-skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* Notification System */
+  .notification {
+    @apply fixed top-4 right-4 z-50 max-w-sm w-full bg-white border border-gray-200 rounded-lg shadow-lg p-4;
+  }
+
+  .notification-success {
+    @apply notification border-green-200 bg-green-50;
+  }
+
+  .notification-error {
+    @apply notification border-red-200 bg-red-50;
+  }
+
+  .notification-warning {
+    @apply notification border-yellow-200 bg-yellow-50;
+  }
+
+  /* Hero Animations */
+  .hero-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Data Visualization */
+  .chart-bar {
+    @apply bg-gradient-to-t from-blue-500 to-blue-400 rounded-t transition-all duration-300 hover:from-blue-600 hover:to-blue-500;
+  }
+
+  .chart-tooltip {
+    @apply absolute z-10 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg pointer-events-none;
+  }
+
+  /* Performance Indicators */
+  .performance-good {
+    @apply text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2;
+  }
+
+  .performance-warning {
+    @apply text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2;
+  }
+
+  .performance-poor {
+    @apply text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2;
   }
 }
-
-/* Add to app/globals.css for mobile improvements */
 
 /* Mobile-first responsive design improvements */
 @layer utilities {
@@ -51,16 +209,16 @@
   }
   
   .mobile-table tr {
-    @apply block border border-gray-200 mb-2 p-3 rounded-lg md:table-row md:border-0 md:mb-0 md:p-0 md:rounded-none;
+    @apply block border border-gray-200 mb-2 p-4 rounded-lg md:table-row md:border-0 md:mb-0 md:p-0 md:rounded-none bg-white shadow-sm md:shadow-none;
   }
   
   .mobile-table td {
-    @apply block text-right pl-16 relative pb-1 md:table-cell md:text-left md:pl-6 md:pb-4 md:relative-auto;
+    @apply block text-right pl-20 relative pb-2 md:table-cell md:text-left md:pl-6 md:pb-4 md:relative-auto;
   }
   
   .mobile-table td:before {
     content: attr(data-label);
-    @apply absolute left-3 font-medium text-gray-700 md:hidden;
+    @apply absolute left-4 font-medium text-gray-700 md:hidden;
   }
   
   /* Component selector mobile improvements */
@@ -69,7 +227,7 @@
   }
   
   .component-dropdown-menu {
-    @apply absolute z-50 w-full max-h-60 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg md:max-h-96;
+    @apply absolute z-50 w-full max-h-60 overflow-auto bg-white border border-gray-300 rounded-lg shadow-xl md:max-h-96;
   }
   
   /* Mobile gear chart */
@@ -92,7 +250,7 @@
   
   /* Mobile navigation */
   .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:relative md:border-t-0 md:p-0;
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:relative md:border-t-0 md:p-0 shadow-lg md:shadow-none;
   }
   
   .mobile-nav-buttons {
@@ -100,6 +258,131 @@
   }
   
   .mobile-nav-button {
-    @apply flex-1 py-3 px-4 text-center rounded-md font-medium md:flex-none md:py-2;
+    @apply flex-1 py-3 px-4 text-center rounded-lg font-medium md:flex-none md:py-2;
+  }
+
+  /* Glassmorphism effects */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-gray-900/80 backdrop-blur-md border border-white/10;
+  }
+
+  /* Premium gradient backgrounds */
+  .bg-premium {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .bg-premium-light {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  /* Advanced animations */
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Performance charts */
+  .chart-container {
+    @apply relative w-full h-64 md:h-80 bg-gray-50 rounded-lg p-4;
+  }
+
+  /* Freemium conversion elements */
+  .freemium-prompt {
+    @apply bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 text-center;
+  }
+
+  .upgrade-cta {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse;
+  }
+
+  .status-offline {
+    @apply inline-block w-2 h-2 bg-gray-400 rounded-full;
+  }
+
+  /* Feature comparison table */
+  .comparison-table th {
+    @apply bg-gray-50 px-6 py-4 text-left text-sm font-medium text-gray-900;
+  }
+
+  .comparison-table td {
+    @apply px-6 py-4 text-sm text-gray-700 border-t border-gray-200;
+  }
+
+  .comparison-highlight {
+    @apply bg-blue-50 border-l-4 border-blue-400;
+  }
+
+  /* Professional PDF preview */
+  .pdf-preview {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4;
+  }
+
+  .pdf-header {
+    @apply border-b border-gray-200 pb-4 mb-4;
+  }
+
+  /* ROI calculator styling */
+  .roi-positive {
+    @apply text-green-600 font-semibold;
+  }
+
+  .roi-negative {
+    @apply text-red-600 font-semibold;
+  }
+
+  .roi-neutral {
+    @apply text-gray-600 font-semibold;
+  }
+
+  /* Strava integration preview */
+  .strava-preview {
+    @apply bg-orange-50 border border-orange-200 rounded-lg p-4;
+  }
+
+  .strava-logo {
+    @apply text-orange-500;
   }
 }
