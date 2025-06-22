@@ -1,4 +1,4 @@
-// app/actions/componentActions.ts - Fixed version
+// app/actions/componentActions.ts - Fixed with proper manufacturer lookup
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
@@ -18,7 +18,11 @@ export async function getCranksets(): Promise<Crankset[]> {
     .from('components')
     .select(`
       *,
-      details_crankset (*)
+      details_crankset (*),
+      manufacturers (
+        id,
+        name
+      )
     `)
     .eq('component_type', 'crankset');
 
@@ -29,7 +33,7 @@ export async function getCranksets(): Promise<Crankset[]> {
 
   return data?.map(row => ({
     id: row.id,
-    manufacturer: row.manufacturer_id,
+    manufacturer: row.manufacturers?.name || 'Unknown',
     model: row.model_name,
     year: row.year,
     weight: row.weight_grams,
@@ -53,7 +57,11 @@ export async function getCassettes(): Promise<Cassette[]> {
     .from('components')
     .select(`
       *,
-      details_cassette (*)
+      details_cassette (*),
+      manufacturers (
+        id,
+        name
+      )
     `)
     .eq('component_type', 'cassette');
 
@@ -64,7 +72,7 @@ export async function getCassettes(): Promise<Cassette[]> {
 
   return data?.map(row => ({
     id: row.id,
-    manufacturer: row.manufacturer_id,
+    manufacturer: row.manufacturers?.name || 'Unknown',
     model: row.model_name,
     year: row.year,
     weight: row.weight_grams,
@@ -86,7 +94,11 @@ export async function getRearDerailleurs(): Promise<RearDerailleur[]> {
     .from('components')
     .select(`
       *,
-      details_rear_derailleur (*)
+      details_rear_derailleur (*),
+      manufacturers (
+        id,
+        name
+      )
     `)
     .eq('component_type', 'rear_derailleur');
 
@@ -97,7 +109,7 @@ export async function getRearDerailleurs(): Promise<RearDerailleur[]> {
 
   return data?.map(row => ({
     id: row.id,
-    manufacturer: row.manufacturer_id,
+    manufacturer: row.manufacturers?.name || 'Unknown',
     model: row.model_name,
     year: row.year,
     weight: row.weight_grams,
@@ -122,7 +134,11 @@ export async function getChains(): Promise<Chain[]> {
     .from('components')
     .select(`
       *,
-      details_chain (*)
+      details_chain (*),
+      manufacturers (
+        id,
+        name
+      )
     `)
     .eq('component_type', 'chain');
 
@@ -133,7 +149,7 @@ export async function getChains(): Promise<Chain[]> {
 
   return data?.map(row => ({
     id: row.id,
-    manufacturer: row.manufacturer_id,
+    manufacturer: row.manufacturers?.name || 'Unknown',
     model: row.model_name,
     year: row.year,
     weight: row.weight_grams,
