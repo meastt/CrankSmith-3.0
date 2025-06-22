@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { performanceAnalyzer, PerformanceMetrics, USAGE_PROFILES } from '../../lib/performanceAnalyzer';
 import { GearSetup } from '../../lib/gearCalculator';
 import { DrivetrainAnalysis } from '../../types/components';
-import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../../data/components';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
 
 export default function PerformanceTestPage() {
   const [analysis, setAnalysis] = useState<{

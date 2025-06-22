@@ -8,6 +8,7 @@ import { SaveLoadModal } from '../components/SaveLoadModal';
 import { gearCalculator, GearSetup } from '../lib/gearCalculator';
 import { GearCalculation } from '../types/components';
 
+
 export default function GearAnalysisPage() {
   const [gears, setGears] = useState<GearCalculation[]>([]);
   const [selectedGear, setSelectedGear] = useState<GearCalculation | null>(null);
@@ -70,7 +71,7 @@ export default function GearAnalysisPage() {
     try {
       // Import components dynamically
       const { getCranksets, getCassettes, getRearDerailleurs, getChains } = 
-        await import('../data/components');
+  await import('../actions/componentActions');
       
       const cranksets = getCranksets();
       const cassettes = getCassettes();

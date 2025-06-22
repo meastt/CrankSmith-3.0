@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { chainLineCalculator, ChainLineSetup, ChainLineResult } from '../../lib/chainLineCalculator';
-import { getCranksets, getCassettes } from '../../data/components';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
 
 export default function ChainLineTestPage() {
   const [results, setResults] = useState<{

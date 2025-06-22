@@ -145,4 +145,4 @@ export async function getChains(): Promise<Chain[]> {
     links: row.details_chain?.links || 0,
     brand: row.details_chain?.brand || 'shimano'
   })) || [];
-} 
+}

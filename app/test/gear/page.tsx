@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { gearCalculator, GearSetup } from '../../lib/gearCalculator';
 import { GainRatioCalculator } from '../../lib/gainRatioUtils';
 import { GearCalculation } from '../../types/components';
-import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../../data/components';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
 
 export default function GearTestPage() {
   const [calculations, setCalculations] = useState<{
