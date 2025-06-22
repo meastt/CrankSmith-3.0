@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { gearCalculator, GearSetup } from '../../lib/gearCalculator';
 import { GainRatioCalculator } from '../../lib/gainRatioUtils';
 import { GearCalculation } from '../../types/components';
-import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../../actions/componentActions';
 
 export default function GearTestPage() {
   const [calculations, setCalculations] = useState<{
@@ -17,12 +17,12 @@ export default function GearTestPage() {
     runGearTests();
   }, []);
 
-  const runGearTests = () => {
+  const runGearTests = async () => {
     try {
-      const cranksets = getCranksets();
-      const cassettes = getCassettes();
-      const derailleurs = getRearDerailleurs();
-      const chains = getChains();
+      const cranksets = await getCranksets();
+      const cassettes = await getCassettes();
+      const derailleurs = await getRearDerailleurs();
+      const chains = await getChains();
 
       // Test with Shimano 105 road setup
       const gearSetup: GearSetup = {

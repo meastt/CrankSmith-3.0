@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { chainLineCalculator, ChainLineSetup, ChainLineResult } from '../../lib/chainLineCalculator';
-import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../../actions/componentActions';
 
 export default function ChainLineTestPage() {
   const [results, setResults] = useState<{
@@ -16,10 +16,10 @@ export default function ChainLineTestPage() {
     runChainLineTests();
   }, []);
 
-  const runChainLineTests = () => {
+  const runChainLineTests = async () => {
     try {
-      const cranksets = getCranksets();
-      const cassettes = getCassettes();
+      const cranksets = await getCranksets();
+      const cassettes = await getCassettes();
 
       // Test 1: Road setup (Shimano 105)
       const roadSetup: ChainLineSetup = {

@@ -742,11 +742,3 @@ export class MockStravaData {
     ];
   }
 }
-
-// Export everything for use in components
-export type {
-  StravaActivity,
-  StravaSegment,
-  GearUsageHeatmap,
-  StravaAnalysisResult
-};

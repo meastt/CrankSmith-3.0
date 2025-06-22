@@ -3,9 +3,60 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Check, Zap, Gauge, Users, CheckCircle, Mountain, ChevronRight, TrendingUp } from 'lucide-react';
 
 export default function HomePage() {
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [selectedMode, setSelectedMode] = useState('');
+  const router = useRouter();
+
+  const userTypes = [
+    {
+      id: 'quick',
+      title: 'Quick Compatibility Check',
+      subtitle: 'Just want to know if parts work together?',
+      icon: Check,
+      users: 'Perfect for casual cyclists',
+      color: 'bg-green-500',
+      description: '2-minute compatibility check with simple yes/no answers',
+      time: '2 mins',
+      route: '/quick-check'
+    },
+    {
+      id: 'build',
+      title: 'Build & Optimize',
+      subtitle: 'Planning a new drivetrain or upgrade?',
+      icon: Zap,
+      users: 'Great for hobbyists & enthusiasts',
+      color: 'bg-blue-500',
+      description: 'Guided setup with performance insights and recommendations',
+      time: '10 mins',
+      route: '/build'
+    },
+    {
+      id: 'analyze',
+      title: 'Deep Analysis',
+      subtitle: 'Want every detail and technical spec?',
+      icon: Gauge,
+      users: 'For gear heads & professionals',
+      color: 'bg-purple-500',
+      description: 'Complete performance analysis with all technical data',
+      time: '20+ mins',
+      route: '/analyze'
+    }
+  ];
+
+  const handleModeSelection = (modeId: string) => {
+    setSelectedMode(modeId);
+  };
+
+  const handleStartTool = () => {
+    const selectedUserType = userTypes.find(type => type.id === selectedMode);
+    if (selectedUserType) {
+      router.push(selectedUserType.route);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
@@ -54,420 +105,142 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-24">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-transparent to-indigo-600/5"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-full text-sm font-medium text-blue-700 mb-6">
-              <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              The Strava of Drivetrain Optimization
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-              Professional
-              <span className="block bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Drivetrain Analysis
-              </span>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="space-y-12">
+          {/* Hero Section */}
+          <div className="text-center space-y-6">
+            <h1 className="text-5xl font-bold text-gray-900">
+              The Smart Way to Build Your Drivetrain
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Real compatibility intelligence, performance prediction, and cost-per-performance analysis. 
-              The only platform that shows you how well components will work together before you buy.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              From quick compatibility checks to deep performance analysis. 
+              Choose your adventure level and get answers that actually matter.
             </p>
             
-            {/* Hero CTAs */}
-            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-12">
-              <Link 
-                href="/build"
-                className="group bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center"
-              >
-                Start Free Analysis
-                <svg className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-              <Link 
-                href="/analyze"
-                className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-gray-400 hover:bg-gray-50 transition-all flex items-center"
-              >
-                <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                </svg>
-                View Live Demo
-              </Link>
-            </div>
-
             {/* Social Proof */}
-            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 text-sm text-gray-500">
-              <div className="flex items-center">
-                <div className="flex -space-x-2 mr-3">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full border-2 border-white"></div>
-                  ))}
+            <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-6 border border-blue-100">
+              <div className="flex items-center justify-center space-x-8 text-sm">
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium">50K+ cyclists trust CrankSmith</span>
                 </div>
-                <span>500+ shops trust CrankSmith</span>
-              </div>
-              <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
-              <div className="flex items-center">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span>50,000+ builds analyzed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Value Propositions */}
-      <section id="features" className="py-24 bg-white/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              What Makes Us Different
-            </h2>
-            <p className="text-xl text-gray-600">
-              Not just "will it fit" but "how well will it work"
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Performance Prediction */}
-            <div className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6">
-                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Performance Prediction</h3>
-              <p className="text-gray-600 mb-4">See actual speed/effort trade-offs before buying. Know exactly how upgrades will affect your riding.</p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Premium Feature
-              </div>
-            </div>
-
-            {/* Real Compatibility */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6">
-                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Real Compatibility Intelligence</h3>
-              <p className="text-gray-600 mb-4">Beyond basic specs - learn about chain line efficiency, cross-chain issues, and real-world performance.</p>
-              <div className="text-green-600 font-medium">
-                Free & Premium
-              </div>
-            </div>
-
-            {/* ROI Analysis */}
-            <div className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6">
-                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Cost-per-Performance Analysis</h3>
-              <p className="text-gray-600 mb-4">ROI calculations for upgrades. See which improvements give you the biggest bang for your buck.</p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                Premium Feature
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Premium Preview */}
-      <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              See What Premium Unlocks
-            </h2>
-            <p className="text-xl text-gray-600">
-              Professional features for serious cyclists and bike shops
-            </p>
-          </div>
-
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-            <div className="grid grid-cols-1 lg:grid-cols-2">
-              {/* Preview Content */}
-              <div className="p-8 lg:p-12">
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Performance Dashboard</h3>
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-medium text-blue-700">Speed at 200W</span>
-                        <span className="text-2xl font-bold text-blue-900">23.4 mph</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-medium text-blue-700">Climbing (6% grade)</span>
-                        <span className="text-2xl font-bold text-blue-900">8.1 mph</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-blue-700">Efficiency Loss</span>
-                        <span className="text-lg font-semibold text-orange-600">2.3%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Upgrade Recommendations</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                        <span className="text-sm text-green-800">Switch to 11-28 cassette</span>
-                        <span className="text-sm font-semibold text-green-700">+0.8% efficiency</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <span className="text-sm text-blue-800">Upgrade to Ultegra chain</span>
-                        <span className="text-sm font-semibold text-blue-700">+0.4% efficiency</span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">99.8% compatibility accuracy</span>
                 </div>
-              </div>
-
-              {/* Upgrade CTA */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 lg:p-12 text-white">
-                <div className="h-full flex flex-col justify-center">
-                  <h3 className="text-3xl font-bold mb-4">Unlock Full Analysis</h3>
-                  <ul className="space-y-3 mb-8">
-                    <li className="flex items-center">
-                      <svg className="h-5 w-5 mr-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Performance predictions</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="h-5 w-5 mr-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Unlimited saved builds</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="h-5 w-5 mr-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Professional PDF reports</span>
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="h-5 w-5 mr-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Strava integration</span>
-                    </li>
-                  </ul>
-                  <button 
-                    onClick={() => setShowPricingModal(true)}
-                    className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg"
-                  >
-                    Start 7-Day Free Trial
-                  </button>
-                  <p className="text-blue-200 text-sm mt-3">No credit card required</p>
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <Mountain className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium">All bike types supported</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Quick Access Cards */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
-            Start Building Today
-          </h2>
-          
+          {/* Mode Selection Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link 
-              href="/build"
-              className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-pointer block"
-            >
-              <div className="text-4xl mb-4">🏗️</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Drivetrain Builder</h3>
-              <p className="text-gray-600 mb-6">Build and analyze complete drivetrains with real compatibility checking.</p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                <span>Start Building</span>
-                <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
-
-            <Link 
-              href="/analyze"
-              className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-pointer block"
-            >
-              <div className="text-4xl mb-4">📊</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Analysis Demo</h3>
-              <p className="text-gray-600 mb-6">See comprehensive gear analysis and performance predictions in action.</p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                <span>View Demo</span>
-                <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
-
-            <Link 
-              href="/test"
-              className="group bg-white rounded-2xl p-8 shadow-sm border border-gray-200 hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-pointer block"
-            >
-              <div className="text-4xl mb-4">🧪</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Test Results</h3>
-              <p className="text-gray-600 mb-6">Explore our compatibility engine test results and validation data.</p>
-              <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700">
-                <span>View Tests</span>
-                <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Modal */}
-      {showPricingModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold text-gray-900">Choose Your Plan</h2>
-                <button 
-                  onClick={() => setShowPricingModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            {userTypes.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <div
+                  key={mode.id}
+                  className={`relative group p-8 bg-white border-2 rounded-2xl cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                    selectedMode === mode.id ? 'border-blue-500 ring-4 ring-blue-100 shadow-lg' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleModeSelection(mode.id)}
                 >
-                  <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Free Plan */}
-                <div className="border border-gray-200 rounded-xl p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Free</h3>
-                  <div className="text-3xl font-bold text-gray-900 mb-4">$0</div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Basic calculator
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      3 saved builds
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Standard components
-                    </li>
-                  </ul>
-                  <Link 
-                    href="/build"
-                    className="block w-full py-3 px-4 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-center"
-                  >
-                    Get Started
-                  </Link>
-                </div>
-
-                {/* Enthusiast Plan */}
-                <div className="border-2 border-blue-500 rounded-xl p-6 relative">
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                    Most Popular
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className={`w-14 h-14 ${mode.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <div className="text-xs text-gray-500 bg-gray-100 rounded-full px-3 py-1">
+                        {mode.time}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{mode.title}</h3>
+                      <p className="text-gray-600">{mode.subtitle}</p>
+                    </div>
+                    
+                    <div className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2 inline-block font-medium">
+                      {mode.users}
+                    </div>
+                    
+                    <p className="text-sm text-gray-700 leading-relaxed">{mode.description}</p>
+                    
+                    <div className="flex items-center text-blue-600 font-medium group-hover:text-blue-700 transition-colors">
+                      Get Started <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Enthusiast</h3>
-                  <div className="text-3xl font-bold text-gray-900 mb-4">$4.99<span className="text-base font-normal text-gray-600">/mo</span></div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Everything in Free
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Unlimited saves
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      All components
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Performance predictions
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      PDF reports
-                    </li>
-                  </ul>
-                  <button className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                    Start Free Trial
-                  </button>
+                  
+                  {selectedMode === mode.id && (
+                    <div className="absolute -top-2 -right-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Pro Shop Plan */}
-                <div className="border border-gray-200 rounded-xl p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Pro Shop</h3>
-                  <div className="text-3xl font-bold text-gray-900 mb-4">$29.99<span className="text-base font-normal text-gray-600">/mo</span></div>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Everything in Enthusiast
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Customer management
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Inventory integration
-                    </li>
-                    <li className="flex items-center text-sm">
-                      <svg className="h-4 w-4 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      White-label reports
-                    </li>
-                  </ul>
-                  <button className="w-full py-3 px-4 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                    Contact Sales
-                  </button>
+          {/* Action Button */}
+          {selectedMode && (
+            <div className="text-center">
+              <button 
+                onClick={handleStartTool}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-10 py-5 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 inline-flex items-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                {selectedMode === 'quick' && 'Start Quick Check'}
+                {selectedMode === 'build' && 'Open Builder Tool'}
+                {selectedMode === 'analyze' && 'Launch Pro Analysis'}
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </button>
+            </div>
+          )}
+
+          {/* Feature Highlights */}
+          <div className="border-t border-gray-200 pt-12">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-10">
+              Why CrankSmith is Different
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center space-y-4 group">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Check className="w-10 h-10 text-white" />
                 </div>
+                <h3 className="text-xl font-bold text-gray-900">Real Compatibility</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Not just "will it fit" but "how well will it work" with actual performance data from thousands of real builds
+                </p>
+              </div>
+              
+              <div className="text-center space-y-4 group">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                  <TrendingUp className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Performance Prediction</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  See actual speed/effort trade-offs before buying with AI-powered recommendations based on your riding style
+                </p>
+              </div>
+              
+              <div className="text-center space-y-4 group">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:shadow-xl transition-shadow">
+                  <Mountain className="w-10 h-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">All Disciplines</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Road, gravel, mountain, hybrid - comprehensive database covering every cycling discipline and use case
+                </p>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </main>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16">

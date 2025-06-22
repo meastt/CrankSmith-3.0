@@ -69,14 +69,13 @@ export default function GearAnalysisPage() {
 
   const loadSampleSetup = async () => {
     try {
-      // Import components dynamically
       const { getCranksets, getCassettes, getRearDerailleurs, getChains } = 
   await import('../actions/componentActions');
       
-      const cranksets = getCranksets();
-      const cassettes = getCassettes();
-      const derailleurs = getRearDerailleurs();
-      const chains = getChains();
+      const cranksets = await getCranksets();
+      const cassettes = await getCassettes();
+      const derailleurs = await getRearDerailleurs();
+      const chains = await getChains();
 
       // Find components with proper error handling
       const crankset = cranksets.find(c => c.id === 'shimano-105-r7000-50-34');

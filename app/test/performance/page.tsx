@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { performanceAnalyzer, PerformanceMetrics, USAGE_PROFILES } from '../../lib/performanceAnalyzer';
 import { GearSetup } from '../../lib/gearCalculator';
 import { DrivetrainAnalysis } from '../../types/components';
-import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../actions/componentActions';
+import { getCranksets, getCassettes, getRearDerailleurs, getChains } from '../../actions/componentActions';
 
 export default function PerformanceTestPage() {
   const [analysis, setAnalysis] = useState<{
@@ -21,12 +21,12 @@ export default function PerformanceTestPage() {
     runPerformanceTests();
   }, []);
 
-  const runPerformanceTests = () => {
+  const runPerformanceTests = async () => {
     try {
-      const cranksets = getCranksets();
-      const cassettes = getCassettes();
-      const derailleurs = getRearDerailleurs();
-      const chains = getChains();
+      const cranksets = await getCranksets();
+      const cassettes = await getCassettes();
+      const derailleurs = await getRearDerailleurs();
+      const chains = await getChains();
 
       // Road setup (Shimano 105)
       const roadSetup: GearSetup = {

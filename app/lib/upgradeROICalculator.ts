@@ -352,7 +352,7 @@ export class UpgradeROICalculator {
   private static calculateSpeedIncrease(efficiencyGainPercent: number): string {
     // Efficiency gains translate roughly to speed increases at same power
     const speedIncrease = efficiencyGainPercent * 0.3; // Conservative estimate
-    return Math.round(speedIncrease * 100) / 100;
+    return `${Math.round(speedIncrease * 100) / 100} km/h increase at same power`;
   }
   
   private static calculateGearRange(gears: any[]): number {
@@ -559,6 +559,3 @@ export class UpgradeComparator {
     return affordableOptions[0];
   }
 }
-
-// Export types for use in components
-export type { ComponentPricing, UpgradeAnalysis };
