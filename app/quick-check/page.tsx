@@ -1,379 +1,504 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Check, AlertCircle, Settings, Share2, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+
+interface CompatibilityResult {
+  compatible: boolean;
+  checks: {
+    name: string;
+    status: 'pass' | 'warning' | 'fail';
+    details: string;
+  }[];
+  gearRange: {
+    lowest: number;
+    highest: number;
+    range: number;
+  };
+  recommendations: string[];
+}
 
 export default function QuickCheckPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [data, setData] = useState({
-    bikeType: '',
-    goal: '',
-    currentSetup: {},
-    targetSetup: {},
-    result: null
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedComponents, setSelectedComponents] = useState({
+    crankset: '',
+    cassette: '',
+    chain: '',
+    derailleur: ''
   });
+  const [result, setResult] = useState<CompatibilityResult | null>(null);
 
-  const bikeTypes = [
-    { id: 'road', name: 'Road Bike', icon: '🚴‍♂️', desc: 'Drop bars, skinny tires, speed focused' },
-    { id: 'gravel', name: 'Gravel/Adventure', icon: '🌄', desc: 'Drop bars, wider tires, versatile' },
-    { id: 'mtb', name: 'Mountain Bike', icon: '⛰️', desc: 'Flat bars, knobby tires, off-road' },
-    { id: 'hybrid', name: 'Hybrid/Commuter', icon: '🚲', desc: 'Flat bars, mixed-use, practical' }
-  ];
-
-  const goals = [
-    { id: 'upgrade', label: 'Upgrade existing components', desc: 'Make my current bike better', icon: '⬆️' },
-    { id: 'build', label: 'Build new drivetrain', desc: 'Starting from scratch', icon: '🔧' },
-    { id: 'check', label: 'Check compatibility', desc: 'Verify parts work together', icon: '✅' }
-  ];
-
-  const runCompatibilityCheck = () => {
-    // Mock compatibility check
-    const isCompatible = Math.random() > 0.3; // 70% compatible
-    const result = {
-      compatible: isCompatible,
-      confidence: isCompatible ? 95 : 85,
-      warnings: isCompatible ? [] : ['Speed mismatch between components'],
-      improvements: isCompatible ? ['Consider 11-32T cassette for better climbing'] : [],
-      cost: Math.round(Math.random() * 500 + 200),
-      performance: {
-        gearRange: 4.2,
-        efficiency: isCompatible ? 97.8 : 94.2,
-        weight: Math.round(Math.random() * 200 + 800)
+  // Real component database (simplified for demo)
+  const components = {
+    cranksets: {
+      'shimano-ultegra-fc-r8100': { 
+        name: 'Shimano Ultegra FC-R8100', 
+        chainrings: [50, 34], 
+        speeds: 12, 
+        type: 'road' 
+      },
+      'sram-force-axs': { 
+        name: 'SRAM Force AXS', 
+        chainrings: [48, 35], 
+        speeds: 12, 
+        type: 'road' 
+      },
+      'shimano-xt-fc-m8100': { 
+        name: 'Shimano XT FC-M8100', 
+        chainrings: [32], 
+        speeds: 12, 
+        type: 'mtb' 
+      },
+      'sram-gx-eagle': { 
+        name: 'SRAM GX Eagle', 
+        chainrings: [32], 
+        speeds: 12, 
+        type: 'mtb' 
       }
-    };
-    setData(prev => ({ ...prev, result }));
-    setStep(4);
+    },
+    cassettes: {
+      'shimano-ultegra-cs-r8100': { 
+        name: 'Shimano Ultegra CS-R8100', 
+        cogs: [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30], 
+        speeds: 11, 
+        brand: 'shimano',
+        type: 'road'
+      },
+      'sram-force-xg-1270': { 
+        name: 'SRAM Force XG-1270', 
+        cogs: [10, 11, 12, 13, 14, 15, 17, 19, 21, 24, 28, 33], 
+        speeds: 12, 
+        brand: 'sram',
+        type: 'road'
+      },
+      'shimano-xt-cs-m8100': { 
+        name: 'Shimano XT CS-M8100', 
+        cogs: [10, 12, 14, 16, 18, 21, 24, 28, 33, 39, 45, 51], 
+        speeds: 12, 
+        brand: 'shimano',
+        type: 'mtb'
+      },
+      'sram-gx-eagle-xg-1275': { 
+        name: 'SRAM GX Eagle XG-1275', 
+        cogs: [10, 12, 14, 16, 18, 21, 24, 28, 32, 36, 42, 50], 
+        speeds: 12, 
+        brand: 'sram',
+        type: 'mtb'
+      }
+    },
+    chains: {
+      'shimano-ultegra-cn-hg701': { 
+        name: 'Shimano Ultegra CN-HG701', 
+        speeds: 11, 
+        brand: 'shimano' 
+      },
+      'sram-force-cn-1271': { 
+        name: 'SRAM Force CN-1271', 
+        speeds: 12, 
+        brand: 'sram' 
+      },
+      'shimano-xt-cn-m8100': { 
+        name: 'Shimano XT CN-M8100', 
+        speeds: 12, 
+        brand: 'shimano' 
+      },
+      'sram-gx-eagle-cn-1275': { 
+        name: 'SRAM GX Eagle CN-1275', 
+        speeds: 12, 
+        brand: 'sram' 
+      }
+    },
+    derailleurs: {
+      'shimano-ultegra-rd-r8150': { 
+        name: 'Shimano Ultegra RD-R8150', 
+        speeds: 11, 
+        maxCog: 34, 
+        capacity: 39, 
+        brand: 'shimano',
+        type: 'road'
+      },
+      'sram-force-axs-rd': { 
+        name: 'SRAM Force AXS RD', 
+        speeds: 12, 
+        maxCog: 36, 
+        capacity: 36, 
+        brand: 'sram',
+        type: 'road'
+      },
+      'shimano-xt-rd-m8100': { 
+        name: 'Shimano XT RD-M8100', 
+        speeds: 12, 
+        maxCog: 51, 
+        capacity: 47, 
+        brand: 'shimano',
+        type: 'mtb'
+      },
+      'sram-gx-eagle-rd': { 
+        name: 'SRAM GX Eagle RD', 
+        speeds: 12, 
+        maxCog: 52, 
+        capacity: 52, 
+        brand: 'sram',
+        type: 'mtb'
+      }
+    }
   };
 
-  const StepIndicator = ({ current, total }: { current: number; total: number }) => (
-    <div className="flex items-center justify-center space-x-3 mb-8">
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} className={`w-3 h-3 rounded-full transition-colors ${
-          i + 1 <= current ? 'bg-blue-600' : 'bg-gray-300'
-        }`} />
-      ))}
-    </div>
-  );
+  const handleComponentSelect = (component: string, value: string) => {
+    setSelectedComponents(prev => ({
+      ...prev,
+      [component]: value
+    }));
+  };
 
-  if (step === 1) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/')} className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">CrankSmith 3.0</span>
-                </button>
+  const runRealCompatibilityCheck = (): CompatibilityResult => {
+    const crankset = components.cranksets[selectedComponents.crankset as keyof typeof components.cranksets];
+    const cassette = components.cassettes[selectedComponents.cassette as keyof typeof components.cassettes];
+    const chain = components.chains[selectedComponents.chain as keyof typeof components.chains];
+    const derailleur = components.derailleurs[selectedComponents.derailleur as keyof typeof components.derailleurs];
+
+    const checks = [];
+    let compatible = true;
+
+    // Speed compatibility check
+    const speeds = [crankset?.speeds, cassette?.speeds, chain?.speeds, derailleur?.speeds];
+    const speedsMatch = speeds.every(s => s === speeds[0]);
+    checks.push({
+      name: 'Speed Compatibility',
+      status: speedsMatch ? 'pass' : 'fail',
+      details: speedsMatch 
+        ? `All components are ${speeds[0]}-speed` 
+        : `Speed mismatch: ${speeds.join('/')}-speed components`
+    });
+    if (!speedsMatch) compatible = false;
+
+    // Brand compatibility check
+    const crankBrand = selectedComponents.crankset.includes('shimano') ? 'shimano' : 'sram';
+    const brandMismatch = (cassette?.brand !== chain?.brand) || (cassette?.brand !== derailleur?.brand);
+    checks.push({
+      name: 'Brand Compatibility',
+      status: brandMismatch ? 'warning' : 'pass',
+      details: brandMismatch 
+        ? 'Mixed brands may require specific compatibility checks'
+        : `${cassette?.brand.charAt(0).toUpperCase()}${cassette?.brand.slice(1)} drivetrain components`
+    });
+
+    // Derailleur capacity check
+    if (cassette && derailleur && crankset) {
+      const cassetteRange = Math.max(...cassette.cogs) - Math.min(...cassette.cogs);
+      const chainringRange = crankset.chainrings.length > 1 
+        ? Math.max(...crankset.chainrings) - Math.min(...crankset.chainrings) 
+        : 0;
+      const requiredCapacity = cassetteRange + chainringRange;
+      
+      checks.push({
+        name: 'Derailleur Capacity',
+        status: requiredCapacity <= derailleur.capacity ? 'pass' : 'fail',
+        details: `Required: ${requiredCapacity}T, Available: ${derailleur.capacity}T`
+      });
+      if (requiredCapacity > derailleur.capacity) compatible = false;
+
+      // Max cog size check
+      const maxCog = Math.max(...cassette.cogs);
+      checks.push({
+        name: 'Maximum Cog Size',
+        status: maxCog <= derailleur.maxCog ? 'pass' : 'fail',
+        details: `Cassette: ${maxCog}T, Derailleur limit: ${derailleur.maxCog}T`
+      });
+      if (maxCog > derailleur.maxCog) compatible = false;
+    }
+
+    // Calculate gear range
+    let gearRange = { lowest: 0, highest: 0, range: 0 };
+    if (crankset && cassette) {
+      const ratios = [];
+      for (const chainring of crankset.chainrings) {
+        for (const cog of cassette.cogs) {
+          ratios.push(chainring / cog);
+        }
+      }
+      gearRange = {
+        lowest: Math.min(...ratios),
+        highest: Math.max(...ratios),
+        range: Math.max(...ratios) / Math.min(...ratios)
+      };
+    }
+
+    // Generate recommendations
+    const recommendations = [];
+    if (!compatible) {
+      recommendations.push('Fix compatibility issues before proceeding');
+    } else {
+      if (gearRange.range > 4.5) {
+        recommendations.push('Wide gear range - excellent for varied terrain');
+      }
+      if (brandMismatch) {
+        recommendations.push('Consider matching all components to same brand for optimal performance');
+      }
+    }
+
+    return {
+      compatible,
+      checks,
+      gearRange,
+      recommendations
+    };
+  };
+
+  const handleAnalyze = () => {
+    setIsAnalyzing(true);
+    // Short delay to show checking state, then calculate
+    setTimeout(() => {
+      const analysisResult = runRealCompatibilityCheck();
+      setResult(analysisResult);
+      setIsAnalyzing(false);
+    }, 1500);
+  };
+
+  const canProceed = () => {
+    return Object.values(selectedComponents).every(component => component !== '');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b">
+        <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <div className="flex-shrink-0">
+                <h1 className="text-xl font-bold text-gray-900">CrankSmith</h1>
               </div>
-              <button 
-                onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Quick Compatibility Check</h2>
-            <p className="text-gray-600">Get instant answers about your drivetrain in under 2 minutes</p>
-          </div>
-          
-          <StepIndicator current={1} total={3} />
-          
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">What type of bike?</h3>
-            <p className="text-gray-600">This helps us show you the right components</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {bikeTypes.map(type => (
-              <button
-                key={type.id}
-                onClick={() => {
-                  setData(prev => ({ ...prev, bikeType: type.id }));
-                  setStep(2);
-                }}
-                className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-semibold text-gray-900 text-lg">{type.name}</div>
-                  <div className="text-2xl">{type.icon}</div>
-                </div>
-                <div className="text-gray-600">{type.desc}</div>
-              </button>
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (step === 2) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/')} className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">CrankSmith 3.0</span>
-                </button>
-              </div>
-              <button 
-                onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between mb-6">
-            <button 
-              onClick={() => setStep(1)}
-              className="text-blue-600 hover:text-blue-700 flex items-center text-sm font-medium"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Back
-            </button>
-          </div>
-          
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">What's your goal?</h3>
-            <p className="text-gray-600">Help us understand what you're trying to achieve</p>
-          </div>
-          
-          <div className="space-y-4 mb-8">
-            {goals.map(goal => (
-              <button
-                key={goal.id}
-                onClick={() => {
-                  setData(prev => ({ ...prev, goal: goal.id }));
-                  setStep(3);
-                }}
-                className="w-full flex items-center space-x-4 p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-              >
-                <div className="text-2xl">{goal.icon}</div>
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900 text-lg">{goal.label}</div>
-                  <div className="text-gray-600">{goal.desc}</div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </button>
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (step === 3) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/')} className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">CrankSmith 3.0</span>
-                </button>
-              </div>
-              <button 
-                onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between mb-6">
-            <button 
-              onClick={() => setStep(2)}
-              className="text-blue-600 hover:text-blue-700 flex items-center text-sm font-medium"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" /> Back
-            </button>
-          </div>
-          
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-blue-600 animate-spin" />
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Analyzing Compatibility</h3>
-            <p className="text-gray-600">Our AI is checking your components...</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 mb-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                <span className="text-gray-700">Analyzing compatibility matrix...</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
-                <span className="text-gray-700">Calculating gear ratios...</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>
-                <span className="text-gray-700">Checking component compatibility...</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <button 
-              onClick={runCompatibilityCheck}
-              className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              View Results
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <button onClick={() => router.push('/')} className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">CrankSmith 3.0</span>
-                </button>
-              </div>
-              <button 
-                onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Compatibility Results</h2>
-            <p className="text-gray-600">Here's what we found about your setup</p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <div className="text-center mb-6">
-              {data.result?.compatible ? (
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-600" />
-                </div>
-              ) : (
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
-                </div>
-              )}
-              
-              <h3 className={`text-2xl font-bold mb-2 ${
-                data.result?.compatible ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {data.result?.compatible ? 'Compatible!' : 'Compatibility Issues Found'}
-              </h3>
-              
-              <p className="text-gray-600">
-                Confidence: {data.result?.confidence}%
-              </p>
+              <nav className="hidden md:flex space-x-8">
+                <a href="#" className="text-blue-600 font-medium">Quick Check</a>
+                <a href="#" className="text-gray-500 hover:text-gray-900">Build Guide</a>
+                <a href="#" className="text-gray-500 hover:text-gray-900">Database</a>
+              </nav>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Performance</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Gear Range:</span>
-                    <span className="font-medium">{data.result?.performance.gearRange}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Efficiency:</span>
-                    <span className="font-medium">{data.result?.performance.efficiency}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Weight:</span>
-                    <span className="font-medium">{data.result?.performance.weight}g</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Cost Estimate</h4>
-                <div className="text-2xl font-bold text-blue-600">
-                  ${data.result?.cost}
-                </div>
-                <p className="text-sm text-gray-600">Total component cost</p>
-              </div>
-            </div>
-            
-            {data.result?.warnings && data.result.warnings.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <h4 className="font-semibold text-yellow-800 mb-2">Warnings</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  {data.result.warnings.map((warning, index) => (
-                    <li key={index}>• {warning}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {data.result?.improvements && data.result.improvements.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h4 className="font-semibold text-blue-800 mb-2">Suggestions</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  {data.result.improvements.map((improvement, index) => (
-                    <li key={index}>• {improvement}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex justify-center space-x-4">
-            <button 
-              onClick={() => router.push('/build')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Build Custom Setup
-            </button>
             <button 
               onClick={() => router.push('/')}
-              className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+              className="text-gray-600 hover:text-gray-900 flex items-center"
             >
-              Back to Home
+              <ChevronLeft className="w-4 h-4 mr-1" /> Back to Home
             </button>
           </div>
+        </header>
+
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {step === 1 && (
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  Component Compatibility Check
+                </h2>
+                <p className="text-lg text-gray-600">
+                  Select your drivetrain components to verify compatibility and calculate gear ratios
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Crankset Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Crankset
+                    </label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={selectedComponents.crankset}
+                      onChange={(e) => handleComponentSelect('crankset', e.target.value)}
+                    >
+                      <option value="">Select a crankset...</option>
+                      {Object.entries(components.cranksets).map(([key, crankset]) => (
+                        <option key={key} value={key}>
+                          {crankset.name} ({crankset.chainrings.join('/')}T)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Cassette Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Cassette
+                    </label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={selectedComponents.cassette}
+                      onChange={(e) => handleComponentSelect('cassette', e.target.value)}
+                    >
+                      <option value="">Select a cassette...</option>
+                      {Object.entries(components.cassettes).map(([key, cassette]) => (
+                        <option key={key} value={key}>
+                          {cassette.name} ({Math.min(...cassette.cogs)}-{Math.max(...cassette.cogs)}T)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Chain Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Chain
+                    </label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={selectedComponents.chain}
+                      onChange={(e) => handleComponentSelect('chain', e.target.value)}
+                    >
+                      <option value="">Select a chain...</option>
+                      {Object.entries(components.chains).map(([key, chain]) => (
+                        <option key={key} value={key}>
+                          {chain.name} ({chain.speeds}-speed)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Derailleur Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Rear Derailleur
+                    </label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={selectedComponents.derailleur}
+                      onChange={(e) => handleComponentSelect('derailleur', e.target.value)}
+                    >
+                      <option value="">Select a derailleur...</option>
+                      {Object.entries(components.derailleurs).map(([key, derailleur]) => (
+                        <option key={key} value={key}>
+                          {derailleur.name} (Max {derailleur.maxCog}T)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                  <button 
+                    onClick={handleAnalyze}
+                    disabled={!canProceed()}
+                    className="bg-blue-600 text-white px-8 py-3 rounded-md font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                  >
+                    Check Compatibility <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {isAnalyzing && (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Settings className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Checking Compatibility</h3>
+              <p className="text-gray-600">Verifying component specifications...</p>
+            </div>
+          )}
+
+          {result && (
+            <div className="space-y-6">
+              {/* Overall Result */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="flex items-center mb-4">
+                  {result.compatible ? (
+                    <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+                  ) : (
+                    <AlertTriangle className="w-8 h-8 text-red-600 mr-3" />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-semibold text-gray-900">
+                      {result.compatible ? 'Compatible Setup' : 'Compatibility Issues Found'}
+                    </h2>
+                    <p className="text-gray-600">
+                      {result.compatible 
+                        ? 'All components work together properly'
+                        : 'Some components are not compatible'
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Compatibility Checks */}
+                <div className="space-y-3">
+                  {result.checks.map((check, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        {check.status === 'pass' && <CheckCircle className="w-5 h-5 text-green-600 mr-2" />}
+                        {check.status === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />}
+                        {check.status === 'fail' && <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />}
+                        <span className="font-medium text-gray-900">{check.name}</span>
+                      </div>
+                      <span className="text-sm text-gray-600">{check.details}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gear Range */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Gear Range Analysis</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{result.gearRange.lowest.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">Lowest Ratio</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{result.gearRange.highest.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">Highest Ratio</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{result.gearRange.range.toFixed(1)}</div>
+                    <div className="text-sm text-gray-600">Range</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommendations */}
+              {result.recommendations.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-800 mb-2 flex items-center">
+                    <Info className="w-4 h-4 mr-2" />
+                    Recommendations
+                  </h3>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    {result.recommendations.map((rec, index) => (
+                      <li key={index}>• {rec}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-center space-x-4">
+                <button 
+                  onClick={() => {
+                    setStep(1);
+                    setResult(null);
+                    setIsAnalyzing(false);
+                  }}
+                  className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Check Another Setup
+                </button>
+                {result.compatible && (
+                  <button 
+                    onClick={() => router.push('/analyze')}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Detailed Analysis
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
