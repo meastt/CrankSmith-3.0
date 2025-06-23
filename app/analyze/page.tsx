@@ -1,442 +1,546 @@
-// app/analyze/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { GearChart } from '../components/GearChart';
-import { SpeedCalculator } from '../components/SpeedCalculator';
-import { SaveLoadModal } from '../components/SaveLoadModal';
-import { gearCalculator, GearSetup } from '../lib/gearCalculator';
-import { GearCalculation } from '../types/components';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  ChevronLeft, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
+  Info, 
+  Settings, 
+  TrendingUp,
+  DollarSign,
+  Zap,
+  Target
+} from 'lucide-react';
+import { EnhancedCompatibilityEngine, DrivetrainAnalysis } from '../lib/enhancedCompatibilityEngine';
 
+export default function RealisticAnalysisPage() {
+  const router = useRouter();
+  const [analysis, setAnalysis] = useState<DrivetrainAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'gears' | 'chainline' | 'technical'>('overview');
 
-export default function GearAnalysisPage() {
-  const [gears, setGears] = useState<GearCalculation[]>([]);
-  const [selectedGear, setSelectedGear] = useState<GearCalculation | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [setup, setSetup] = useState<GearSetup | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isCustomSetup, setIsCustomSetup] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-
-  // Initialize with either custom setup from build page or sample setup
   useEffect(() => {
-    loadSetup();
-  }, []);
-
-  const loadSetup = async () => {
-    setLoading(true);
-    setError(null);
+    // In real app, get component IDs from URL params or context
+    // For demo, using XT MTB setup
+    const engine = new EnhancedCompatibilityEngine();
     
     try {
-      // First check if there's a custom setup from the build page
-      const storedSetup = sessionStorage.getItem('cranksmith_setup');
+      const result = engine.analyzeFullDrivetrain(
+        'shimano-xt-fc-m8100-32',     // XT crankset
+        'shimano-xt-cs-m8100-10-51',  // XT cassette
+        'shimano-xt-cn-m8100',        // XT chain
+        'shimano-xt-rd-m8100-sgs'     // XT derailleur
+      );
       
-      if (storedSetup) {
-        try {
-          const customSetup = JSON.parse(storedSetup);
-          console.log('Loading custom setup from build page:', customSetup);
-          
-          setSetup(customSetup);
-          setIsCustomSetup(true);
-          
-          // Calculate gears for custom setup
-          const calculatedGears = gearCalculator.calculateAllGears(customSetup);
-          setGears(calculatedGears);
-          
-          // Select middle gear as default
-          if (calculatedGears.length > 0) {
-            setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
-          }
-          
-          setLoading(false);
-          return;
-        } catch (parseError) {
-          console.warn('Failed to parse stored setup, falling back to sample setup');
-          sessionStorage.removeItem('cranksmith_setup'); // Clear corrupted data
-        }
-      }
-      
-      // Fall back to sample setup if no custom setup
-      await loadSampleSetup();
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load gear analysis';
-      setError(errorMessage);
-      console.error('Error loading setup:', err);
-      setLoading(false);
+      setAnalysis(result);
+    } catch (error) {
+      console.error('Analysis failed:', error);
     }
-  };
-
-  const loadSampleSetup = async () => {
-    try {
-      const { getCranksets, getCassettes, getRearDerailleurs, getChains } = 
-  await import('../actions/componentActions');
-      
-      const cranksets = await getCranksets();
-      const cassettes = await getCassettes();
-      const derailleurs = await getRearDerailleurs();
-      const chains = await getChains();
-
-      // Find components with proper error handling
-      const crankset = cranksets.find(c => c.id === 'shimano-105-r7000-50-34');
-      const cassette = cassettes.find(c => c.id === 'shimano-105-r7000-11-32');
-      const derailleur = derailleurs.find(d => d.id === 'shimano-105-r7000-gs');
-      const chain = chains.find(c => c.id === 'shimano-105-cn-hg601-11');
-
-      if (!crankset || !cassette || !derailleur || !chain) {
-        throw new Error('Could not find required components for sample setup');
-      }
-
-      // Create sample setup
-      const sampleSetup: GearSetup = {
-        bikeType: 'road',
-        crankset,
-        cassette,
-        rearDerailleur: derailleur,
-        chain,
-        wheelSetup: {
-          tireSize: '700x25c',
-          rimWidth: 21
-        },
-        crankLength: 175
-      };
-
-      setSetup(sampleSetup);
-      setIsCustomSetup(false);
-      
-      // Calculate gears
-      const calculatedGears = gearCalculator.calculateAllGears(sampleSetup);
-      setGears(calculatedGears);
-      
-      // Select first optimal gear as default
-      const optimalGears = gearCalculator.getOptimalGears(calculatedGears);
-      if (optimalGears.length > 0) {
-        setSelectedGear(optimalGears[Math.floor(optimalGears.length / 2)]);
-      } else if (calculatedGears.length > 0) {
-        setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
-      }
-      
-      setLoading(false);
-      
-    } catch (err) {
-      throw err; // Re-throw to be caught by parent try-catch
-    }
-  };
-
-  const handleGearSelect = (gear: GearCalculation) => {
-    setSelectedGear(gear);
-  };
-
-  const clearCustomSetup = () => {
-    sessionStorage.removeItem('cranksmith_setup');
-    loadSampleSetup();
-  };
-
-  // Calculate analysis summary
-  const analysisData = React.useMemo(() => {
-    if (gears.length === 0) return null;
-
-    const optimalGears = gearCalculator.getOptimalGears(gears);
-    const problematicGears = gearCalculator.getProblematicGears(gears);
-    const gearRange = gearCalculator.calculateGearRange(gears);
-    const gearSteps = gearCalculator.calculateGearSteps(gears);
-    const duplicates = gearCalculator.findGearDuplicates(gears);
-
-    return {
-      total: gears.length,
-      optimal: optimalGears.length,
-      problematic: problematicGears.length,
-      range: gearRange.range,
-      averageStep: gearSteps.length > 0 ? 
-        gearSteps.reduce((sum, step) => sum + step.stepPercentage, 0) / gearSteps.length : 0,
-      largestStep: gearSteps.length > 0 ? Math.max(...gearSteps.map(s => s.stepPercentage)) : 0,
-      duplicates: duplicates.length,
-      lowestRatio: Math.min(...gears.map(g => g.ratio)),
-      highestRatio: Math.max(...gears.map(g => g.ratio)),
-      lowestUsable: gearRange.lowestUsable?.ratio || 0,
-      highestUsable: gearRange.highestUsable?.ratio || 0
-    };
-  }, [gears]);
+    
+    setLoading(false);
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Calculating gear analysis...</p>
+          <Settings className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
+          <p className="text-neutral-600">Analyzing drivetrain setup...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!analysis) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-600 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Analysis Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={loadSetup}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          <XCircle className="w-12 h-12 text-accent-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-neutral-900 mb-2">Analysis Failed</h2>
+          <p className="text-neutral-600 mb-4">Unable to analyze the selected components.</p>
+          <button 
+            onClick={() => router.push('/build')}
+            className="bg-primary-600 text-white px-6 py-3 rounded-tool font-medium hover:bg-primary-700"
           >
-            Retry
+            Build New Setup
           </button>
         </div>
       </div>
     );
   }
 
+  const getStatusIcon = (status: 'pass' | 'warning' | 'fail') => {
+    switch (status) {
+      case 'pass': return <CheckCircle className="w-5 h-5 text-success-500" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+      case 'fail': return <XCircle className="w-5 h-5 text-accent-500" />;
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-success-600';
+    if (score >= 75) return 'text-success-500';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-accent-600';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 90) return 'bg-success-100';
+    if (score >= 75) return 'bg-success-50';
+    if (score >= 60) return 'bg-yellow-50';
+    if (score >= 40) return 'bg-orange-50';
+    return 'bg-accent-50';
+  };
+
+  const tabs = [
+    { id: 'overview', name: 'Overview', icon: <Target className="w-4 h-4" /> },
+    { id: 'gears', name: 'Gear Analysis', icon: <Settings className="w-4 h-4" /> },
+    { id: 'chainline', name: 'Chain Line', icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'technical', name: 'Technical', icon: <Info className="w-4 h-4" /> }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="bg-white shadow-tool border-b border-neutral-200 sticky top-0 z-50">
+        <div className="px-4">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                CrankSmith 3.0 - Gear Analysis
-              </h1>
-              <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                isCustomSetup 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {isCustomSetup ? 'Custom Setup' : 'Demo Setup'}
+              <h1 className="text-lg font-bold text-neutral-900">CrankSmith</h1>
+              <span className="ml-2 px-2 py-1 text-xs bg-tool-orange text-white rounded-tool">
+                Analysis
               </span>
             </div>
-            <div className="flex space-x-4">
-              {isCustomSetup && (
-                <button
-                  onClick={clearCustomSetup}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  🔄 Load Demo
-                </button>
-              )}
-              <button
-                onClick={loadSetup}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                🔄 Reload
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
-              >
-                💾 Save & Share
-              </button>
-              <a
-                href="/build"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                Build New Setup
-              </a>
-            </div>
+            
+            <button 
+              onClick={() => router.push('/build')}
+              className="text-neutral-600 hover:text-neutral-900 flex items-center touch-target"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> New Build
+            </button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Setup Summary */}
-        {setup && (
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Current Setup
-              </h2>
-              {isCustomSetup && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                  ✓ Built by you
-                </span>
-              )}
+      <main className="px-4 py-6 pb-20">
+        {/* Header with Overall Score */}
+        <div className="bg-white rounded-tool border border-neutral-200 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-900">
+                Drivetrain Analysis
+              </h1>
+              <p className="text-neutral-600">
+                Shimano XT {analysis.technicalSummary.speedCount}-Speed MTB Setup
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Crankset</h3>
-                <p className="text-sm text-gray-900">
-                  {setup.crankset.manufacturer} {setup.crankset.model}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {setup.crankset.chainrings.join('/')}T, {setup.crankLength}mm
-                </p>
+            
+            <div className={`text-center p-4 rounded-tool ${getScoreBg(analysis.overallScore)}`}>
+              <div className={`text-3xl font-bold ${getScoreColor(analysis.overallScore)}`}>
+                {analysis.overallScore}
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Cassette</h3>
-                <p className="text-sm text-gray-900">
-                  {setup.cassette.manufacturer} {setup.cassette.model}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {setup.cassette.speeds}sp, {setup.cassette.cogRange[0]}-{setup.cassette.cogRange[1]}T
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Derailleur</h3>
-                <p className="text-sm text-gray-900">
-                  {setup.rearDerailleur.manufacturer} {setup.rearDerailleur.model}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {setup.rearDerailleur.cageLength}, Max {setup.rearDerailleur.maxCogSize}T
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Wheel/Tire</h3>
-                <p className="text-sm text-gray-900">
-                  {setup.wheelSetup.tireSize}
-                </p>
-                <p className="text-xs text-gray-600">
-                  {setup.wheelSetup.rimWidth}mm rim
-                </p>
-              </div>
+              <div className="text-sm text-neutral-600">Overall Score</div>
             </div>
           </div>
-        )}
 
-        {/* Analysis Summary */}
-        {analysisData && (
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Analysis Summary
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{analysisData.total}</div>
-                <div className="text-sm text-gray-600">Total Gears</div>
+          {/* Status Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                {analysis.compatible ? (
+                  <CheckCircle className="w-6 h-6 text-success-500" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-accent-500" />
+                )}
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{analysisData.optimal}</div>
-                <div className="text-sm text-gray-600">Optimal</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{analysisData.problematic}</div>
-                <div className="text-sm text-gray-600">Problematic</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{analysisData.range.toFixed(1)}</div>
-                <div className="text-sm text-gray-600">Range</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-indigo-600">{analysisData.averageStep.toFixed(1)}%</div>
-                <div className="text-sm text-gray-600">Avg Step</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">{analysisData.largestStep.toFixed(1)}%</div>
-                <div className="text-sm text-gray-600">Max Gap</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{analysisData.duplicates}</div>
-                <div className="text-sm text-gray-600">Overlaps</div>
+              <div className="text-sm font-medium text-neutral-900">
+                {analysis.compatible ? 'Compatible' : 'Issues Found'}
               </div>
             </div>
             
-            {/* Ratio Range */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>
-                  <strong>Total Range:</strong> {analysisData.lowestRatio.toFixed(2)} - {analysisData.highestRatio.toFixed(2)}
-                </span>
-                <span>
-                  <strong>Usable Range:</strong> {analysisData.lowestUsable.toFixed(2)} - {analysisData.highestUsable.toFixed(2)}
-                </span>
+            <div className="text-center">
+              <div className="text-xl font-bold text-primary-600">
+                {analysis.gearAnalysis.totalGears}
               </div>
+              <div className="text-sm text-neutral-600">Total Gears</div>
             </div>
-          </div>
-        )}
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Gear Chart - takes 2/3 width */}
-          <div className="xl:col-span-2">
-            <GearChart
-              gears={gears}
-              crankLength={setup?.crankLength || 175}
-              speedUnit="mph"
-              highlightOptimal={true}
-              showEfficiency={true}
-              onGearSelect={handleGearSelect}
-            />
-          </div>
-
-          {/* Speed Calculator - takes 1/3 width */}
-          <div className="xl:col-span-1">
-            <div className="sticky top-8">
-              <SpeedCalculator
-                selectedGear={selectedGear}
-                allGears={gears}
-                onGearChange={handleGearSelect}
-              />
+            
+            <div className="text-center">
+              <div className="text-xl font-bold text-success-600">
+                {analysis.gearAnalysis.gearRange.toFixed(1)}
+              </div>
+              <div className="text-sm text-neutral-600">Gear Range</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-xl font-bold text-tool-orange">
+                ${analysis.costAnalysis.totalCost}
+              </div>
+              <div className="text-sm text-neutral-600">Total Cost</div>
             </div>
           </div>
         </div>
 
-        {/* Call to Action */}
-        {!isCustomSetup && (
-          <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-blue-900 mb-2">
-                🎉 Ready to Build Your Own Setup?
-              </h3>
-              <p className="text-blue-700 mb-4">
-                This analysis used a sample Shimano 105 road setup. 
-                Build your own drivetrain to get personalized gear analysis.
-              </p>
-              <a
-                href="/build"
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-tool border border-neutral-200 mb-6">
+          <div className="flex overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setSelectedTab(tab.id as any)}
+                className={`flex items-center space-x-2 px-4 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
+                  selectedTab === tab.id
+                    ? 'border-primary-600 text-primary-600'
+                    : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                }`}
               >
-                🔧 Build Your Drivetrain
-                <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </a>
+                {tab.icon}
+                <span>{tab.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {selectedTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Compatibility Checks */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+                Compatibility Checks
+              </h2>
+              
+              <div className="space-y-3">
+                {analysis.checks.map((check, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-neutral-50 rounded-tool">
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(check.status)}
+                      <div>
+                        <div className="font-medium text-neutral-900">{check.name}</div>
+                        <div className="text-sm text-neutral-600">{check.message}</div>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-tool text-xs font-medium ${
+                      check.impact === 'high' ? 'bg-accent-100 text-accent-800' :
+                      check.impact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-neutral-100 text-neutral-800'
+                    }`}>
+                      {check.impact}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Cost Analysis */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center">
+                <DollarSign className="w-5 h-5 mr-2" />
+                Cost Breakdown
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {Object.entries(analysis.costAnalysis.componentCosts).map(([component, cost]) => (
+                  <div key={component} className="flex justify-between p-3 bg-neutral-50 rounded-tool">
+                    <span className="font-medium text-neutral-900 capitalize">{component}</span>
+                    <span className="text-neutral-900">${cost}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-between items-center pt-3 border-t border-neutral-200">
+                <span className="font-semibold text-neutral-900">Total</span>
+                <span className="text-xl font-bold text-primary-600">
+                  ${analysis.costAnalysis.totalCost}
+                </span>
+              </div>
+              
+              <div className="mt-3 text-sm text-neutral-600">
+                ${analysis.costAnalysis.costPerGear.toFixed(2)} per gear • 
+                <span className={`ml-1 font-medium ${
+                  analysis.costAnalysis.valueRating === 'excellent' ? 'text-success-600' :
+                  analysis.costAnalysis.valueRating === 'good' ? 'text-success-500' :
+                  analysis.costAnalysis.valueRating === 'fair' ? 'text-yellow-600' :
+                  'text-accent-600'
+                }`}>
+                  {analysis.costAnalysis.valueRating} value
+                </span>
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            {(analysis.recommendations.length > 0 || analysis.warnings.length > 0) && (
+              <div className="space-y-4">
+                {analysis.warnings.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-tool p-4">
+                    <h3 className="font-semibold text-yellow-800 mb-2 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Warnings
+                    </h3>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      {analysis.warnings.map((warning, index) => (
+                        <li key={index}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {analysis.recommendations.length > 0 && (
+                  <div className="bg-primary-50 border border-primary-200 rounded-tool p-4">
+                    <h3 className="font-semibold text-primary-800 mb-2 flex items-center">
+                      <Info className="w-4 h-4 mr-2" />
+                      Recommendations
+                    </h3>
+                    <ul className="text-sm text-primary-700 space-y-1">
+                      {analysis.recommendations.map((rec, index) => (
+                        <li key={index}>• {rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Custom Setup Success Message */}
-        {isCustomSetup && (
-          <div className="mt-12 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-green-900 mb-2">
-                ✅ Custom Drivetrain Analysis Complete!
-              </h3>
-              <p className="text-green-700 mb-4">
-                This analysis is based on your custom component selection from the drivetrain builder.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <a
-                  href="/build"
-                  className="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
-                >
-                  🔧 Build Another Setup
-                </a>
-                <button
-                  onClick={clearCustomSetup}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                >
-                  📊 View Demo Setup
-                </button>
+        {selectedTab === 'gears' && (
+          <div className="space-y-6">
+            {/* Gear Range Summary */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+                Gear Range Analysis
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary-600">
+                    {analysis.gearAnalysis.lowestRatio.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-neutral-600">Lowest Ratio</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success-600">
+                    {analysis.gearAnalysis.highestRatio.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-neutral-600">Highest Ratio</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-tool-orange">
+                    {analysis.gearAnalysis.avgStepSize.toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-neutral-600">Avg Step</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-neutral-600">
+                    {analysis.gearAnalysis.usableGears}/{analysis.gearAnalysis.totalGears}
+                  </div>
+                  <div className="text-sm text-neutral-600">Usable Gears</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gear Table */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+                Gear Combinations
+              </h2>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-neutral-200">
+                      <th className="text-left py-2">Chainring</th>
+                      <th className="text-left py-2">Cog</th>
+                      <th className="text-left py-2">Ratio</th>
+                      <th className="text-left py-2">Gear Inches</th>
+                      <th className="text-left py-2">Status</th>
+                      <th className="text-left py-2">Efficiency</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.gearAnalysis.gearTable.slice(0, 12).map((gear, index) => (
+                      <tr key={index} className="border-b border-neutral-100">
+                        <td className="py-2 font-medium">{gear.chainring}T</td>
+                        <td className="py-2">{gear.cog}T</td>
+                        <td className="py-2">{gear.ratio.toFixed(2)}</td>
+                        <td className="py-2">{gear.gearInches.toFixed(1)}"</td>
+                        <td className="py-2">
+                          <span className={`px-2 py-1 rounded-tool text-xs font-medium ${
+                            gear.status === 'optimal' ? 'bg-success-100 text-success-800' :
+                            gear.status === 'good' ? 'bg-success-50 text-success-700' :
+                            gear.status === 'acceptable' ? 'bg-neutral-100 text-neutral-700' :
+                            gear.status === 'cross-chain' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-accent-100 text-accent-800'
+                          }`}>
+                            {gear.status}
+                          </span>
+                        </td>
+                        <td className="py-2">{(gear.efficiency * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         )}
-      </main>
 
-      {/* Save/Load Modal */}
-      {showExportModal && setup && (
-        <SaveLoadModal
-          currentSetup={setup}
-          onLoad={(loadedSetup) => {
-            setSetup(loadedSetup);
-            const calculatedGears = gearCalculator.calculateAllGears(loadedSetup);
-            setGears(calculatedGears);
-            if (calculatedGears.length > 0) {
-              setSelectedGear(calculatedGears[Math.floor(calculatedGears.length / 2)]);
-            }
-            setShowExportModal(false);
-          }}
-          onClose={() => setShowExportModal(false)}
-        />
-      )}
+        {selectedTab === 'chainline' && (
+          <div className="space-y-6">
+            {/* Chain Line Summary */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+                Chain Line Analysis
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary-600">
+                    {analysis.chainLineAnalysis.frontChainLine}mm
+                  </div>
+                  <div className="text-sm text-neutral-600">Front Chain Line</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success-600">
+                    {(analysis.chainLineAnalysis.overallEfficiency * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-neutral-600">Overall Efficiency</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-tool-orange">
+                    {analysis.chainLineAnalysis.straightChainRange.min}-{analysis.chainLineAnalysis.straightChainRange.max}T
+                  </div>
+                  <div className="text-sm text-neutral-600">Sweet Spot</div>
+                </div>
+              </div>
+
+              {/* Chain Line Status by Cog */}
+              <div className="space-y-2">
+                <h3 className="font-medium text-neutral-900 mb-3">Chain Line by Cog</h3>
+                {analysis.chainLineAnalysis.cogPositions.map((cog, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-neutral-50 rounded">
+                    <span className="font-medium">{cog.cog}T</span>
+                    <span className="text-sm text-neutral-600">{cog.angle.toFixed(1)}° offset</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      cog.status === 'optimal' ? 'bg-success-100 text-success-800' :
+                      cog.status === 'good' ? 'bg-success-50 text-success-700' :
+                      cog.status === 'acceptable' ? 'bg-neutral-100 text-neutral-700' :
+                      cog.status === 'poor' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-accent-100 text-accent-800'
+                    }`}>
+                      {cog.status}
+                    </span>
+                    <span className="text-sm">{(cog.efficiency * 100).toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedTab === 'technical' && (
+          <div className="space-y-6">
+            {/* Technical Specifications */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+                Technical Specifications
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Speed Count</span>
+                    <span className="font-medium">{analysis.technicalSummary.speedCount}-speed</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Total Weight</span>
+                    <span className="font-medium">{analysis.technicalSummary.totalWeight}g</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Brands</span>
+                    <span className="font-medium">{analysis.technicalSummary.brands.join(', ')}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Freehub Type</span>
+                    <span className="font-medium">{analysis.technicalSummary.freehubType}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Chain Width</span>
+                    <span className="font-medium">{analysis.technicalSummary.chainWidth}mm</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Bottom Bracket</span>
+                    <span className="font-medium">{analysis.technicalSummary.bottomBracketStandards.join(', ')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Efficiency Analysis */}
+            <div className="bg-white rounded-tool border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center">
+                <Zap className="w-5 h-5 mr-2" />
+                Efficiency Analysis
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success-600">
+                    {(analysis.efficiencyAnalysis.overallEfficiency * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-neutral-600">Average Efficiency</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent-600">
+                    {analysis.efficiencyAnalysis.powerLoss.toFixed(1)}W
+                  </div>
+                  <div className="text-sm text-neutral-600">Power Loss</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary-600">
+                    {analysis.efficiencyAnalysis.bestGears.length}
+                  </div>
+                  <div className="text-sm text-neutral-600">Optimal Gears</div>
+                </div>
+              </div>
+
+              <div className="text-sm text-neutral-600">
+                <p className="mb-2">
+                  <strong>Best Gears:</strong> {analysis.efficiencyAnalysis.bestGears.map(g => `${g.chainring}×${g.cog}`).join(', ')}
+                </p>
+                {analysis.efficiencyAnalysis.worstGears.length > 0 && (
+                  <p>
+                    <strong>Avoid:</strong> {analysis.efficiencyAnalysis.worstGears.map(g => `${g.chainring}×${g.cog}`).join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex space-x-3 mt-8">
+          <button
+            onClick={() => router.push('/build')}
+            className="flex-1 bg-primary-600 text-white py-3 px-4 rounded-tool font-medium hover:bg-primary-700 transition-colors"
+          >
+            Build Another Setup
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex-1 bg-neutral-600 text-white py-3 px-4 rounded-tool font-medium hover:bg-neutral-700 transition-colors"
+          >
+            Print Analysis
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
